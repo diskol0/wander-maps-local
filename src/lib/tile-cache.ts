@@ -116,7 +116,7 @@ export async function downloadRegion(
         if (existing) {
           bytes += existing.size;
         } else {
-          const res = await fetch(tileUrl(t.z, t.x, t.y), { signal });
+          const res = await fetch(tileUrl(t.z, t.x, t.y), { signal: signal ?? null });
           if (!res.ok) throw new Error(String(res.status));
           const blob = await res.blob();
           await putTile(t.z, t.x, t.y, blob);
