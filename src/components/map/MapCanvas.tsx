@@ -3,7 +3,7 @@ import type { LeafletMapProps } from "./LeafletMap";
 
 const LeafletMap = lazy(() => import("./LeafletMap"));
 
-function MapSkeleton({ className }: { className?: string }) {
+function MapSkeleton({ className }: { className?: string | undefined }) {
   return (
     <div className={className}>
       <div className="flex h-full w-full items-center justify-center rounded-[inherit] bg-secondary">
