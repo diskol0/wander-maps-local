@@ -33,7 +33,7 @@ function OnlineBadge() {
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-500 border-b border-border bg-background/85 backdrop-blur">
+      <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
           <Link to="/" className="flex items-center gap-2">
             <Mountain className="size-6 text-primary" aria-hidden />
