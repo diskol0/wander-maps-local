@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MapasRouteImport } from './routes/mapas'
 import { Route as OnlineRouteImport } from './routes/online'
 import { Route as RutaTrailIdRouteImport } from './routes/ruta.$trailId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MapasRoute = MapasRouteImport.update({
+  id: '/mapas',
+  path: '/mapas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnlineRoute = OnlineRouteImport.update({
@@ -31,30 +37,34 @@ const RutaTrailIdRoute = RutaTrailIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/mapas': typeof MapasRoute
   '/online': typeof OnlineRoute
   '/ruta/$trailId': typeof RutaTrailIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/mapas': typeof MapasRoute
   '/online': typeof OnlineRoute
   '/ruta/$trailId': typeof RutaTrailIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/mapas': typeof MapasRoute
   '/online': typeof OnlineRoute
   '/ruta/$trailId': typeof RutaTrailIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/online' | '/ruta/$trailId'
+  fullPaths: '/' | '/mapas' | '/online' | '/ruta/$trailId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/online' | '/ruta/$trailId'
-  id: '__root__' | '/' | '/online' | '/ruta/$trailId'
+  to: '/' | '/mapas' | '/online' | '/ruta/$trailId'
+  id: '__root__' | '/' | '/mapas' | '/online' | '/ruta/$trailId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  MapasRoute: typeof MapasRoute
   OnlineRoute: typeof OnlineRoute
   RutaTrailIdRoute: typeof RutaTrailIdRoute
 }
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mapas': {
+      id: '/mapas'
+      path: '/mapas'
+      fullPath: '/mapas'
+      preLoaderRoute: typeof MapasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/online': {
@@ -87,6 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  MapasRoute: MapasRoute,
   OnlineRoute: OnlineRoute,
   RutaTrailIdRoute: RutaTrailIdRoute,
 }
