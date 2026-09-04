@@ -10,7 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MapasRouteImport } from './routes/mapas'
 import { Route as OnlineRouteImport } from './routes/online'
+import { Route as EditorRegionIdRouteImport } from './routes/editor.$regionId'
 import { Route as RutaTrailIdRouteImport } from './routes/ruta.$trailId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -18,9 +20,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MapasRoute = MapasRouteImport.update({
+  id: '/mapas',
+  path: '/mapas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnlineRoute = OnlineRouteImport.update({
   id: '/online',
   path: '/online',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EditorRegionIdRoute = EditorRegionIdRouteImport.update({
+  id: '/editor/$regionId',
+  path: '/editor/$regionId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RutaTrailIdRoute = RutaTrailIdRouteImport.update({
@@ -31,31 +43,45 @@ const RutaTrailIdRoute = RutaTrailIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/mapas': typeof MapasRoute
   '/online': typeof OnlineRoute
+  '/editor/$regionId': typeof EditorRegionIdRoute
   '/ruta/$trailId': typeof RutaTrailIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/mapas': typeof MapasRoute
   '/online': typeof OnlineRoute
+  '/editor/$regionId': typeof EditorRegionIdRoute
   '/ruta/$trailId': typeof RutaTrailIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/mapas': typeof MapasRoute
   '/online': typeof OnlineRoute
+  '/editor/$regionId': typeof EditorRegionIdRoute
   '/ruta/$trailId': typeof RutaTrailIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/online' | '/ruta/$trailId'
+  fullPaths: '/' | '/mapas' | '/online' | '/editor/$regionId' | '/ruta/$trailId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/online' | '/ruta/$trailId'
-  id: '__root__' | '/' | '/online' | '/ruta/$trailId'
+  to: '/' | '/mapas' | '/online' | '/editor/$regionId' | '/ruta/$trailId'
+  id:
+    | '__root__'
+    | '/'
+    | '/mapas'
+    | '/online'
+    | '/editor/$regionId'
+    | '/ruta/$trailId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  MapasRoute: typeof MapasRoute
   OnlineRoute: typeof OnlineRoute
+  EditorRegionIdRoute: typeof EditorRegionIdRoute
   RutaTrailIdRoute: typeof RutaTrailIdRoute
 }
 
@@ -68,11 +94,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mapas': {
+      id: '/mapas'
+      path: '/mapas'
+      fullPath: '/mapas'
+      preLoaderRoute: typeof MapasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/online': {
       id: '/online'
       path: '/online'
       fullPath: '/online'
       preLoaderRoute: typeof OnlineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/editor/$regionId': {
+      id: '/editor/$regionId'
+      path: '/editor/$regionId'
+      fullPath: '/editor/$regionId'
+      preLoaderRoute: typeof EditorRegionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ruta/$trailId': {
@@ -87,7 +127,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  MapasRoute: MapasRoute,
   OnlineRoute: OnlineRoute,
+  EditorRegionIdRoute: EditorRegionIdRoute,
   RutaTrailIdRoute: RutaTrailIdRoute,
 }
 export const routeTree = rootRouteImport
