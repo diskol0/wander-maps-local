@@ -120,8 +120,9 @@ function MapsPage() {
             </div>
             {selected && (
               <Link
-                to="/mapas/$regionId/editor"
+                to="/editor/$regionId"
                 params={{ regionId: selected.id }}
+
                 className="flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
               >
                 <PencilLine className="size-4" aria-hidden /> Crear una ruta en {selected.name}
