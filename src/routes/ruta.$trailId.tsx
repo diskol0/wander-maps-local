@@ -1,20 +1,40 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, Download, MapPin, Timer, TrendingUp, Route as RouteIcon } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ArrowLeft,
+  Download,
+  Loader2,
+  MapPin,
+  Timer,
+  TrendingUp,
+  Route as RouteIcon,
+} from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { MapCanvas } from "@/components/map/MapCanvas";
+import { LayerToggle, useMapLayer } from "@/components/map/LayerToggle";
 import { downloadGpx } from "@/lib/gpx";
-import { getTrail } from "@/lib/trails";
+import { getTrail, type Trail } from "@/lib/trails";
+import { getSavedTrail } from "@/lib/my-trails";
+import { segmentStats } from "@/lib/elevation";
 
 export const Route = createFileRoute("/ruta/$trailId")({
-  loader: ({ params }) => {
-    const trail = getTrail(params.trailId);
-    if (!trail) throw notFound();
-    return { trail };
-  },
+  loader: ({ params }) => ({ trail: getTrail(params.trailId) ?? null }),
   head: ({ loaderData }) => {
-    if (!loaderData) {
+    if (!loaderData?.trail) {
       return {
-        meta: [{ title: "Ruta no disponible | Sendero" }, { name: "robots", content: "noindex" }],
+        meta: [
+          { title: "Ruta guardada | Sendero" },
+          {
+            name: "description",
+            content: "Detalle de una ruta guardada en tu dispositivo, con mapa y perfil de elevación.",
+          },
+          { property: "og:title", content: "Ruta guardada | Sendero" },
+          {
+            property: "og:description",
+            content: "Mapa, perfil de elevación y descarga GPX de tu ruta.",
+          },
+          { name: "robots", content: "noindex" },
+        ],
       };
     }
     const { trail } = loaderData;
@@ -33,7 +53,51 @@ export const Route = createFileRoute("/ruta/$trailId")({
 });
 
 function TrailDetail() {
-  const { trail } = Route.useLoaderData();
+  const { trailId } = Route.useParams();
+  const { trail: staticTrail } = Route.useLoaderData();
+  const [trail, setTrail] = useState<Trail | null>(staticTrail);
+  const [loading, setLoading] = useState(!staticTrail);
+
+  useEffect(() => {
+    if (staticTrail) return;
+    void (async () => {
+      setTrail(await getSavedTrail(trailId));
+      setLoading(false);
+    })();
+  }, [staticTrail, trailId]);
+
+  if (loading) {
+    return (
+      <AppShell>
+        <p className="flex items-center gap-2 py-24 text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" aria-hidden /> Cargando ruta…
+        </p>
+      </AppShell>
+    );
+  }
+
+  if (!trail) {
+    return (
+      <AppShell>
+        <h1 className="text-3xl uppercase">No encontramos esa ruta</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Puede que la hayas borrado o que esté guardada en otro dispositivo.
+        </p>
+        <Link to="/" className="mt-4 inline-block text-sm text-primary hover:underline">
+          Volver a mis rutas
+        </Link>
+      </AppShell>
+    );
+  }
+
+  return <TrailView trail={trail} />;
+}
+
+function TrailView({ trail }: { trail: Trail }) {
+  const [layer, setLayer] = useMapLayer();
+  const [pendingA, setPendingA] = useState<number | null>(null);
+  const [selection, setSelection] = useState<[number, number] | null>(null);
+
   const maxEle = Math.max(...trail.points.map((p) => p.ele));
   const minEle = Math.min(...trail.points.map((p) => p.ele));
   const profile = trail.points
@@ -43,6 +107,28 @@ function TrailDetail() {
       return `${x.toFixed(2)},${y.toFixed(2)}`;
     })
     .join(" ");
+
+  const pick = (index: number) => {
+    setPendingA((a) => {
+      if (a === null) {
+        setSelection(null);
+        return index;
+      }
+      setSelection([a, index]);
+      return null;
+    });
+  };
+
+  const segment = useMemo(() => {
+    if (!selection) return null;
+    const [a, b] = selection;
+    const slice = trail.points.slice(Math.min(a, b), Math.max(a, b) + 1);
+    return slice.length > 1 ? segmentStats(slice) : null;
+  }, [selection, trail.points]);
+
+  const selRange = selection
+    ? ([Math.min(...selection), Math.max(...selection)] as [number, number])
+    : null;
 
   return (
     <AppShell>
@@ -69,20 +155,81 @@ function TrailDetail() {
         </button>
       </header>
 
-      <MapCanvas
-        points={trail.points}
-        className="topo-panel mb-4 h-[420px] overflow-hidden sm:h-[520px]"
-      />
+      <div className="relative mb-4">
+        <MapCanvas
+          points={trail.points}
+          layer={layer}
+          selection={selection}
+          onSelectPoint={pick}
+          className="topo-panel h-[420px] overflow-hidden sm:h-[520px]"
+        />
+        <LayerToggle layer={layer} onChange={setLayer} className="absolute right-3 top-3 z-[500]" />
+      </div>
+
+      <section className="topo-panel mb-4 p-5">
+        <h2 className="text-2xl">Desnivel entre dos puntos</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {pendingA !== null
+            ? `Punto A elegido (#${pendingA + 1}). Toca ahora el punto B en el mapa o en el perfil.`
+            : segment
+              ? `Tramo #${selRange![0] + 1} → #${selRange![1] + 1}`
+              : "Toca dos puntos del mapa o del perfil de elevación para medir el tramo."}
+        </p>
+        {segment && (
+          <dl className="mt-3 grid gap-2 sm:grid-cols-5">
+            {[
+              ["Distancia", `${segment.distanceKm} km`],
+              ["Dif. de cota", `${segment.deltaM > 0 ? "+" : ""}${segment.deltaM} m`],
+              ["Desnivel +", `${segment.ascentM} m`],
+              ["Desnivel −", `${segment.descentM} m`],
+              ["Pendiente", `${segment.slopePct} %`],
+            ].map(([k, v]) => (
+              <div key={k} className="rounded-lg bg-secondary px-3 py-2">
+                <dt className="eyebrow">{k}</dt>
+                <dd className="font-display text-xl">{v}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+        {(segment || pendingA !== null) && (
+          <button
+            type="button"
+            onClick={() => {
+              setSelection(null);
+              setPendingA(null);
+            }}
+            className="mt-3 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+          >
+            Quitar selección
+          </button>
+        )}
+      </section>
 
       <div className="grid gap-4 md:grid-cols-[1fr_320px]">
         <section className="topo-panel p-5">
           <h2 className="text-2xl">Perfil de elevación</h2>
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="mt-3 h-40 w-full">
-            <polyline
-              points={`0,100 ${profile} 100,100`}
-              fill="var(--color-primary)"
-              opacity="0.18"
-            />
+          <svg
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            className="mt-3 h-40 w-full cursor-crosshair"
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const ratio = (e.clientX - rect.left) / rect.width;
+              const idx = Math.round(ratio * (trail.points.length - 1));
+              pick(Math.min(trail.points.length - 1, Math.max(0, idx)));
+            }}
+          >
+            <polyline points={`0,100 ${profile} 100,100`} fill="var(--color-primary)" opacity="0.18" />
+            {selRange && (
+              <rect
+                x={(selRange[0] / (trail.points.length - 1)) * 100}
+                y={0}
+                width={((selRange[1] - selRange[0]) / (trail.points.length - 1)) * 100}
+                height={100}
+                fill="var(--color-accent)"
+                opacity="0.22"
+              />
+            )}
             <polyline
               points={profile}
               fill="none"
