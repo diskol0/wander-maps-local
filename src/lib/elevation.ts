@@ -53,17 +53,36 @@ export async function downloadElevationGrid(
 
   const data = new Int16Array(rows * cols);
   const total = Math.ceil(lats.length / BATCH);
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
   for (let i = 0; i < lats.length; i += BATCH) {
     if (signal?.aborted) throw new Error("aborted");
     const la = lats.slice(i, i + BATCH);
     const lo = lons.slice(i, i + BATCH);
     const url = `${ELEVATION_API}?latitude=${la.join(",")}&longitude=${lo.join(",")}`;
-    const res = await fetch(url, { signal: signal ?? null });
-    if (!res.ok) throw new Error(`elevation ${res.status}`);
-    const json = (await res.json()) as { elevation?: number[] };
-    const vals = json.elevation ?? [];
+
+    let vals: number[] = [];
+    let lastErr: unknown = null;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      if (signal?.aborted) throw new Error("aborted");
+      try {
+        const res = await fetch(url, { signal: signal ?? null });
+        if (res.status === 429 || res.status >= 500) throw new Error(`elevation ${res.status}`);
+        if (!res.ok) throw new Error(`elevation ${res.status}`);
+        const json = (await res.json()) as { elevation?: number[] };
+        vals = json.elevation ?? [];
+        lastErr = null;
+        break;
+      } catch (err) {
+        lastErr = err;
+        await wait(800 * (attempt + 1));
+      }
+    }
+    if (lastErr) throw lastErr;
+
     for (let k = 0; k < la.length; k++) data[i + k] = Math.round(vals[k] ?? 0);
     onProgress?.(Math.floor(i / BATCH) + 1, total);
+    await wait(250);
   }
 
   const grid: ElevationGrid = { bounds, rows, cols, data };

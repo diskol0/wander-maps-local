@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, Download, Mountain, Route as RouteIcon, Timer, TrendingUp } from "lucide-react";
+import { ArrowUpRight, Download, Mountain, Route as RouteIcon, Timer, Trash2, TrendingUp } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { TRAILS, type Trail } from "@/lib/trails";
 import { downloadGpx } from "@/lib/gpx";
+import { deleteTrail, getSavedTrails, type SavedTrail } from "@/lib/my-trails";
 import { cachedBytes, countCachedTiles, formatBytes, getRegions } from "@/lib/tile-cache";
 
 export const Route = createFileRoute("/")({
@@ -27,7 +28,7 @@ export const Route = createFileRoute("/")({
 
 const ACTIVITIES = ["Todas", "Senderismo", "BTT", "Trail running", "Alpinismo"] as const;
 
-function TrailCard({ trail }: { trail: Trail }) {
+function TrailCard({ trail, onDelete }: { trail: Trail; onDelete?: () => void }) {
   return (
     <article className="topo-panel flex flex-col gap-4 p-5 transition-colors hover:border-primary/60">
       <div className="flex items-start justify-between gap-3">
@@ -35,9 +36,14 @@ function TrailCard({ trail }: { trail: Trail }) {
           <p className="eyebrow">{trail.area}</p>
           <h3 className="mt-1 text-2xl leading-tight">{trail.name}</h3>
         </div>
-        <span className="shrink-0 rounded-full border border-border bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
-          {trail.difficulty}
-        </span>
+        <div className="flex shrink-0 items-center gap-2">
+          {onDelete && (
+            <span className="rounded-full bg-accent/20 px-2.5 py-1 text-xs text-accent">Mía</span>
+          )}
+          <span className="rounded-full border border-border bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
+            {trail.difficulty}
+          </span>
+        </div>
       </div>
       <p className="text-sm text-muted-foreground">{trail.summary}</p>
       <dl className="grid grid-cols-3 gap-2 text-sm">
@@ -75,6 +81,16 @@ function TrailCard({ trail }: { trail: Trail }) {
         >
           <Download className="size-4" aria-hidden /> GPX
         </button>
+        {onDelete && (
+          <button
+            type="button"
+            aria-label={`Borrar ${trail.name}`}
+            onClick={onDelete}
+            className="rounded-full border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
+          >
+            <Trash2 className="size-4" aria-hidden />
+          </button>
+        )}
       </div>
     </article>
   );
@@ -84,9 +100,11 @@ function Index() {
   const [activity, setActivity] = useState<(typeof ACTIVITIES)[number]>("Todas");
   const [query, setQuery] = useState("");
   const [stats, setStats] = useState({ regions: 0, tiles: 0, bytes: 0 });
+  const [saved, setSaved] = useState<SavedTrail[]>([]);
 
   useEffect(() => {
     void (async () => {
+      setSaved(await getSavedTrails());
       setStats({
         regions: (await getRegions()).length,
         tiles: await countCachedTiles(),
@@ -97,12 +115,14 @@ function Index() {
 
   const trails = useMemo(
     () =>
-      TRAILS.filter((t) => activity === "Todas" || t.activity === activity).filter(
+      [...saved, ...TRAILS]
+        .filter((t) => activity === "Todas" || t.activity === activity)
+        .filter(
         (t) =>
           t.name.toLowerCase().includes(query.toLowerCase()) ||
           t.area.toLowerCase().includes(query.toLowerCase()),
       ),
-    [activity, query],
+    [activity, query, saved],
   );
 
   return (
@@ -119,7 +139,7 @@ function Index() {
         <div className="mt-6 grid gap-3 sm:grid-cols-3">
           <div className="rounded-lg bg-secondary px-4 py-3">
             <p className="eyebrow">Rutas</p>
-            <p className="font-display text-3xl">{TRAILS.length}</p>
+            <p className="font-display text-3xl">{TRAILS.length + saved.length}</p>
           </div>
           <div className="rounded-lg bg-secondary px-4 py-3">
             <p className="eyebrow">Zonas guardadas</p>
@@ -159,7 +179,17 @@ function Index() {
 
       <div className="grid gap-4 md:grid-cols-2">
         {trails.map((t) => (
-          <TrailCard key={t.id} trail={t} />
+          <TrailCard
+            key={t.id}
+            trail={t}
+            {...(saved.some((s) => s.id === t.id)
+              ? {
+                  onDelete: () => {
+                    void deleteTrail(t.id).then(async () => setSaved(await getSavedTrails()));
+                  },
+                }
+              : {})}
+          />
         ))}
       </div>
 
