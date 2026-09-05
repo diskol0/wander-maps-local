@@ -1,0 +1,18 @@
+{
+  "name": "Sendero — Rutas offline",
+  "short_name": "Sendero",
+  "description": "Rutas de montaña, mapas callejero y satélite descargables y GPX, todo sin cobertura.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#161d1a",
+  "theme_color": "#161d1a",
+  "lang": "es",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
