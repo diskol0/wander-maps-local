@@ -4,7 +4,7 @@ import { ArrowLeft, Loader2, MousePointerClick, Save, Trash2, Undo2 } from "luci
 import { AppShell } from "@/components/AppShell";
 import { MapCanvas } from "@/components/map/MapCanvas";
 import { LayerToggle, useMapLayer } from "@/components/map/LayerToggle";
-import { getGrid, sampleGrid, segmentStats, type ElevationGrid } from "@/lib/elevation";
+import { densify, getGrid, sampleGrid, segmentStats, type ElevationGrid } from "@/lib/elevation";
 import { saveTrail } from "@/lib/my-trails";
 import { getRegion, type Region } from "@/lib/tile-cache";
 import type { Trail, TrailPoint } from "@/lib/trails";
@@ -86,13 +86,14 @@ function EditorPage() {
     });
   }, []);
 
-  const total = useMemo(() => segmentStats(points), [points]);
+  const dense = useMemo(() => densify(points, eleAt), [points, eleAt]);
+  const total = useMemo(() => segmentStats(dense), [dense]);
   const segment = useMemo(() => {
     if (!selection) return null;
     const [a, b] = selection;
     const slice = points.slice(Math.min(a, b), Math.max(a, b) + 1);
-    return slice.length > 1 ? segmentStats(slice) : null;
-  }, [selection, points]);
+    return slice.length > 1 ? segmentStats(densify(slice, eleAt)) : null;
+  }, [selection, points, eleAt]);
 
   async function handleSave() {
     if (points.length < 2 || saving) return;
@@ -108,7 +109,7 @@ function EditorPage() {
       ascentM: total.ascentM,
       durationH: +Math.max(0.2, total.distanceKm / 4 + total.ascentM / 500).toFixed(1),
       summary: `Ruta creada por ti sobre el mapa descargado de ${region?.name ?? "tu zona"}.`,
-      points,
+      points: dense.length > 1 ? dense : points,
     };
     await saveTrail({ ...trail, createdAt: Date.now(), regionId });
     await navigate({ to: "/ruta/$trailId", params: { trailId: id } });

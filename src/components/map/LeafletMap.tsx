@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { getCachedTile, putTile, TILE_LAYERS, type TileLayerId } from "@/lib/tile-cache";
+import { getCachedTile, putTile, tileUrl, TILE_LAYERS, type TileLayerId } from "@/lib/tile-cache";
 
 export type LatLon = { lat: number; lon: number };
 
@@ -40,10 +40,7 @@ const CachedTileLayer = L.TileLayer.extend({
     const layerId: TileLayerId = opts.layerId ?? "street";
     const offlineOnly = opts.offlineOnly;
     const spec = TILE_LAYERS[layerId];
-    const url = spec.url
-      .replace("{z}", String(coords.z))
-      .replace("{x}", String(coords.x))
-      .replace("{y}", String(coords.y));
+    const url = tileUrl(layerId, coords.z, coords.x, coords.y);
 
     void (async () => {
       try {

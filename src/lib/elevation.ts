@@ -12,25 +12,84 @@ export type ElevationGrid = {
 
 const elevStore = createStore("sendero-elevation", "grids");
 
-/** Open-Meteo elevation API: free, no key, up to 100 coords per call. */
-const ELEVATION_API = "https://api.open-meteo.com/v1/elevation";
-const BATCH = 100;
-/** Cap the grid so a big region stays a reasonable number of requests. */
-const MAX_SIDE = 48;
+/**
+ * Terrain-RGB (Terrarium) tiles from the public AWS elevation dataset.
+ * Free, CORS-enabled and tile-based, so a whole region needs only a handful
+ * of requests instead of thousands of point queries.
+ */
+const TERRAIN_URL = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
+const TERRAIN_ZOOM = 12;
+const TILE_PX = 256;
+/** Grid resolution cap (points per side). */
+const MAX_SIDE = 160;
+
+function lonToTileXf(lon: number, z: number) {
+  return ((lon + 180) / 360) * 2 ** z;
+}
+
+function latToTileYf(lat: number, z: number) {
+  const rad = (lat * Math.PI) / 180;
+  return ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * 2 ** z;
+}
 
 function gridShape(bounds: Bounds) {
-  // target ~90 m spacing
   const latSpan = Math.max(1e-6, bounds.north - bounds.south);
   const lonSpan = Math.max(1e-6, bounds.east - bounds.west);
-  const step = 90 / 111320;
+  const step = 60 / 111320;
   const rows = Math.min(MAX_SIDE, Math.max(2, Math.round(latSpan / step)));
   const cols = Math.min(MAX_SIDE, Math.max(2, Math.round(lonSpan / step)));
   return { rows, cols };
 }
 
+function terrainTiles(bounds: Bounds) {
+  const z = TERRAIN_ZOOM;
+  const x0 = Math.floor(lonToTileXf(bounds.west, z));
+  const x1 = Math.floor(lonToTileXf(bounds.east, z));
+  const y0 = Math.floor(latToTileYf(bounds.north, z));
+  const y1 = Math.floor(latToTileYf(bounds.south, z));
+  const out: Array<{ x: number; y: number }> = [];
+  for (let x = Math.min(x0, x1); x <= Math.max(x0, x1); x++) {
+    for (let y = Math.min(y0, y1); y <= Math.max(y0, y1); y++) out.push({ x, y });
+  }
+  return out;
+}
+
 export function estimateElevationRequests(bounds: Bounds) {
-  const { rows, cols } = gridShape(bounds);
-  return Math.ceil((rows * cols) / BATCH);
+  return terrainTiles(bounds).length;
+}
+
+async function loadTerrainTile(x: number, y: number, signal?: AbortSignal) {
+  const url = TERRAIN_URL.replace("{z}", String(TERRAIN_ZOOM))
+    .replace("{x}", String(x))
+    .replace("{y}", String(y));
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url, { signal: signal ?? null });
+      if (!res.ok) throw new Error(`terrain ${res.status}`);
+      const bmp = await createImageBitmap(await res.blob());
+      const canvas = document.createElement("canvas");
+      canvas.width = bmp.width;
+      canvas.height = bmp.height;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      if (!ctx) throw new Error("canvas");
+      ctx.drawImage(bmp, 0, 0);
+      const px = ctx.getImageData(0, 0, bmp.width, bmp.height).data;
+      bmp.close();
+      const ele = new Int16Array(bmp.width * bmp.height);
+      for (let i = 0; i < ele.length; i++) {
+        const r = px[i * 4]!;
+        const g = px[i * 4 + 1]!;
+        const b = px[i * 4 + 2]!;
+        ele[i] = Math.round(r * 256 + g + b / 256 - 32768);
+      }
+      return ele;
+    } catch (err) {
+      lastErr = err;
+      await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("terrain");
 }
 
 export async function downloadElevationGrid(
@@ -40,49 +99,30 @@ export async function downloadElevationGrid(
   signal?: AbortSignal,
 ): Promise<ElevationGrid> {
   const { rows, cols } = gridShape(bounds);
-  const lats: number[] = [];
-  const lons: number[] = [];
-  for (let r = 0; r < rows; r++) {
-    const lat = bounds.north - ((bounds.north - bounds.south) * r) / (rows - 1);
-    for (let c = 0; c < cols; c++) {
-      const lon = bounds.west + ((bounds.east - bounds.west) * c) / (cols - 1);
-      lats.push(+lat.toFixed(6));
-      lons.push(+lon.toFixed(6));
-    }
+  const tiles = terrainTiles(bounds);
+  const cache = new Map<string, Int16Array>();
+
+  let done = 0;
+  for (const t of tiles) {
+    if (signal?.aborted) throw new Error("aborted");
+    cache.set(`${t.x}/${t.y}`, await loadTerrainTile(t.x, t.y, signal));
+    done++;
+    onProgress?.(done, tiles.length);
   }
 
   const data = new Int16Array(rows * cols);
-  const total = Math.ceil(lats.length / BATCH);
-  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-  for (let i = 0; i < lats.length; i += BATCH) {
-    if (signal?.aborted) throw new Error("aborted");
-    const la = lats.slice(i, i + BATCH);
-    const lo = lons.slice(i, i + BATCH);
-    const url = `${ELEVATION_API}?latitude=${la.join(",")}&longitude=${lo.join(",")}`;
-
-    let vals: number[] = [];
-    let lastErr: unknown = null;
-    for (let attempt = 0; attempt < 4; attempt++) {
-      if (signal?.aborted) throw new Error("aborted");
-      try {
-        const res = await fetch(url, { signal: signal ?? null });
-        if (res.status === 429 || res.status >= 500) throw new Error(`elevation ${res.status}`);
-        if (!res.ok) throw new Error(`elevation ${res.status}`);
-        const json = (await res.json()) as { elevation?: number[] };
-        vals = json.elevation ?? [];
-        lastErr = null;
-        break;
-      } catch (err) {
-        lastErr = err;
-        await wait(800 * (attempt + 1));
-      }
+  for (let r = 0; r < rows; r++) {
+    const lat = bounds.north - ((bounds.north - bounds.south) * r) / (rows - 1);
+    const fy = latToTileYf(lat, TERRAIN_ZOOM);
+    for (let c = 0; c < cols; c++) {
+      const lon = bounds.west + ((bounds.east - bounds.west) * c) / (cols - 1);
+      const fx = lonToTileXf(lon, TERRAIN_ZOOM);
+      const tile = cache.get(`${Math.floor(fx)}/${Math.floor(fy)}`);
+      if (!tile) continue;
+      const px = Math.min(TILE_PX - 1, Math.floor((fx % 1) * TILE_PX));
+      const py = Math.min(TILE_PX - 1, Math.floor((fy % 1) * TILE_PX));
+      data[r * cols + c] = tile[py * TILE_PX + px] ?? 0;
     }
-    if (lastErr) throw lastErr;
-
-    for (let k = 0; k < la.length; k++) data[i + k] = Math.round(vals[k] ?? 0);
-    onProgress?.(Math.floor(i / BATCH) + 1, total);
-    await wait(250);
   }
 
   const grid: ElevationGrid = { bounds, rows, cols, data };
@@ -196,4 +236,31 @@ export function segmentStats(
     deltaM: Math.round(delta),
     slopePct: dist > 0 ? +((delta / dist) * 100).toFixed(1) : 0,
   };
+}
+
+/**
+ * Adds intermediate points every ~stepM metres between the given anchors and
+ * samples their elevation, so straight segments still produce a realistic
+ * distance/ascent profile.
+ */
+export function densify(
+  points: Array<{ lat: number; lon: number; ele: number }>,
+  eleAt: (lat: number, lon: number) => number,
+  stepM = 60,
+): Array<{ lat: number; lon: number; ele: number }> {
+  if (points.length < 2) return points;
+  const out: Array<{ lat: number; lon: number; ele: number }> = [points[0]!];
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1]!;
+    const b = points[i]!;
+    const d = haversineM(a, b);
+    const steps = Math.min(400, Math.max(1, Math.round(d / stepM)));
+    for (let k = 1; k <= steps; k++) {
+      const t = k / steps;
+      const lat = a.lat + (b.lat - a.lat) * t;
+      const lon = a.lon + (b.lon - a.lon) * t;
+      out.push(k === steps ? { ...b, ele: eleAt(b.lat, b.lon) } : { lat, lon, ele: eleAt(lat, lon) });
+    }
+  }
+  return out;
 }

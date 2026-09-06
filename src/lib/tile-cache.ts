@@ -1,6 +1,6 @@
 import { createStore, get, set, del, keys, entries } from "idb-keyval";
 
-export type TileLayerId = "street" | "sat";
+export type TileLayerId = "street" | "sat" | "topo";
 
 export const TILE_LAYERS: Record<
   TileLayerId,
@@ -18,9 +18,15 @@ export const TILE_LAYERS: Record<
     attribution: "Imagery &copy; Esri, Maxar, Earthstar Geographics",
     maxZoom: 19,
   },
+  topo: {
+    label: "Curvas de nivel",
+    url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+    attribution: "Cartografía &copy; OpenTopoMap (CC-BY-SA)",
+    maxZoom: 17,
+  },
 };
 
-export const ALL_LAYERS: TileLayerId[] = ["street", "sat"];
+export const ALL_LAYERS: TileLayerId[] = ["street", "sat", "topo"];
 
 /** @deprecated kept for compatibility */
 export const TILE_URL = TILE_LAYERS.street.url;
@@ -85,7 +91,9 @@ export function listTiles(
 }
 
 export function tileUrl(layer: TileLayerId, z: number, x: number, y: number) {
+  const sub = ["a", "b", "c"][Math.abs(x + y) % 3]!;
   return TILE_LAYERS[layer].url
+    .replace("{s}", sub)
     .replace("{z}", String(z))
     .replace("{x}", String(x))
     .replace("{y}", String(y));
