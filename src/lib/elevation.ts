@@ -237,3 +237,30 @@ export function segmentStats(
     slopePct: dist > 0 ? +((delta / dist) * 100).toFixed(1) : 0,
   };
 }
+
+/**
+ * Adds intermediate points every ~stepM metres between the given anchors and
+ * samples their elevation, so straight segments still produce a realistic
+ * distance/ascent profile.
+ */
+export function densify(
+  points: Array<{ lat: number; lon: number; ele: number }>,
+  eleAt: (lat: number, lon: number) => number,
+  stepM = 60,
+): Array<{ lat: number; lon: number; ele: number }> {
+  if (points.length < 2) return points;
+  const out: Array<{ lat: number; lon: number; ele: number }> = [points[0]!];
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1]!;
+    const b = points[i]!;
+    const d = haversineM(a, b);
+    const steps = Math.min(400, Math.max(1, Math.round(d / stepM)));
+    for (let k = 1; k <= steps; k++) {
+      const t = k / steps;
+      const lat = a.lat + (b.lat - a.lat) * t;
+      const lon = a.lon + (b.lon - a.lon) * t;
+      out.push(k === steps ? { ...b, ele: eleAt(b.lat, b.lon) } : { lat, lon, ele: eleAt(lat, lon) });
+    }
+  }
+  return out;
+}
