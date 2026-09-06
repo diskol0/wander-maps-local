@@ -91,7 +91,9 @@ export function listTiles(
 }
 
 export function tileUrl(layer: TileLayerId, z: number, x: number, y: number) {
+  const sub = ["a", "b", "c"][Math.abs(x + y) % 3]!;
   return TILE_LAYERS[layer].url
+    .replace("{s}", sub)
     .replace("{z}", String(z))
     .replace("{x}", String(x))
     .replace("{y}", String(y));
