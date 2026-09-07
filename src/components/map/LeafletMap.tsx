@@ -123,6 +123,8 @@ export default function LeafletMap({
     });
     mapRef.current = map;
     overlayRef.current = L.layerGroup().addTo(map);
+    trackRef.current = L.layerGroup().addTo(map);
+
 
     if (fitBounds) {
       map.fitBounds(
