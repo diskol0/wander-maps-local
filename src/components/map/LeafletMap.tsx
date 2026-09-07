@@ -22,9 +22,16 @@ export type LeafletMapProps = {
   onSelectPoint?: (index: number) => void;
   /** Highlighted sub-segment [from, to] over `points`. */
   selection?: [number, number] | null;
+  /** Live recorded track (drawn in a distinct colour). */
+  track?: LatLon[];
+  /** Current GPS position marker. */
+  you?: LatLon | null;
+  /** Recenter the map on this position when it changes. */
+  flyTo?: { lat: number; lon: number; zoom?: number } | null;
   onViewChange?: (b: { south: number; west: number; north: number; east: number }, zoom: number) => void;
   className?: string;
 };
+
 
 const OFFLINE_TILE =
   "data:image/svg+xml;utf8," +
