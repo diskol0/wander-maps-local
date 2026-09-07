@@ -1,7 +1,7 @@
 # Sendero — tareas
 
 - [x] PWA instalable + service worker (solo app publicada)
-- [ ] Altitudes: Open-Meteo devuelve 429 en lotes grandes → usar fuente/estrategia fiable
-- [ ] Tercera capa de mapa: curvas de nivel (OpenTopoMap), descargable con la zona
-- [ ] Pestaña "Wikiloc": navegador integrado + importar GPX a la biblioteca
-- [ ] Verificación final: build, rutas, editor, importación
+- [x] Altitudes desde teselas de terreno (fiables, sin límites de la API anterior)
+- [x] Tercera capa de mapa: curvas de nivel (OpenTopoMap), se descarga con la zona
+- [x] Pestaña "Wikiloc": buscador + importar GPX (archivo o enlace) a la biblioteca
+- [x] Verificación: compilación, descarga de zona, editor, importación
