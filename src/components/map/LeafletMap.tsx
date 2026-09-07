@@ -155,10 +155,39 @@ export default function LeafletMap({
       map.remove();
       mapRef.current = null;
       overlayRef.current = null;
+      trackRef.current = null;
       tileRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Recenter on demand (search results, GPS follow)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !flyTo) return;
+    map.setView([flyTo.lat, flyTo.lon], flyTo.zoom ?? map.getZoom());
+  }, [flyTo]);
+
+  // Live recorded track + current position
+  useEffect(() => {
+    const group = trackRef.current;
+    if (!group) return;
+    group.clearLayers();
+    const pts = (track ?? []).map((p) => [p.lat, p.lon] as [number, number]);
+    if (pts.length > 1) {
+      L.polyline(pts, { color: "#4aa8ff", weight: 5, opacity: 0.95 }).addTo(group);
+    }
+    if (you) {
+      L.circleMarker([you.lat, you.lon], {
+        radius: 7,
+        color: "#ffffff",
+        weight: 2,
+        fillColor: "#4aa8ff",
+        fillOpacity: 1,
+      }).addTo(group);
+    }
+  }, [track, you]);
+
 
   // Tile layer (swaps when the basemap changes)
   useEffect(() => {
