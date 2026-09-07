@@ -22,9 +22,16 @@ export type LeafletMapProps = {
   onSelectPoint?: (index: number) => void;
   /** Highlighted sub-segment [from, to] over `points`. */
   selection?: [number, number] | null;
+  /** Live recorded track (drawn in a distinct colour). */
+  track?: LatLon[];
+  /** Current GPS position marker. */
+  you?: LatLon | null;
+  /** Recenter the map on this position when it changes. */
+  flyTo?: { lat: number; lon: number; zoom?: number } | null;
   onViewChange?: (b: { south: number; west: number; north: number; east: number }, zoom: number) => void;
   className?: string;
 };
+
 
 const OFFLINE_TILE =
   "data:image/svg+xml;utf8," +
@@ -88,6 +95,9 @@ export default function LeafletMap({
   onMovePoint,
   onSelectPoint,
   selection = null,
+  track,
+  you = null,
+  flyTo = null,
   onViewChange,
   className,
 }: LeafletMapProps) {
@@ -95,7 +105,9 @@ export default function LeafletMap({
   const mapRef = useRef<L.Map | null>(null);
   const tileRef = useRef<L.TileLayer | null>(null);
   const overlayRef = useRef<L.LayerGroup | null>(null);
+  const trackRef = useRef<L.LayerGroup | null>(null);
   const fittedRef = useRef(false);
+
 
   const cb = useRef({ onViewChange, onAddPoint, onMovePoint, onSelectPoint });
   cb.current = { onViewChange, onAddPoint, onMovePoint, onSelectPoint };
@@ -111,6 +123,8 @@ export default function LeafletMap({
     });
     mapRef.current = map;
     overlayRef.current = L.layerGroup().addTo(map);
+    trackRef.current = L.layerGroup().addTo(map);
+
 
     if (fitBounds) {
       map.fitBounds(
@@ -141,10 +155,39 @@ export default function LeafletMap({
       map.remove();
       mapRef.current = null;
       overlayRef.current = null;
+      trackRef.current = null;
       tileRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Recenter on demand (search results, GPS follow)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !flyTo) return;
+    map.setView([flyTo.lat, flyTo.lon], flyTo.zoom ?? map.getZoom());
+  }, [flyTo]);
+
+  // Live recorded track + current position
+  useEffect(() => {
+    const group = trackRef.current;
+    if (!group) return;
+    group.clearLayers();
+    const pts = (track ?? []).map((p) => [p.lat, p.lon] as [number, number]);
+    if (pts.length > 1) {
+      L.polyline(pts, { color: "#4aa8ff", weight: 5, opacity: 0.95 }).addTo(group);
+    }
+    if (you) {
+      L.circleMarker([you.lat, you.lon], {
+        radius: 7,
+        color: "#ffffff",
+        weight: 2,
+        fillColor: "#4aa8ff",
+        fillOpacity: 1,
+      }).addTo(group);
+    }
+  }, [track, you]);
+
 
   // Tile layer (swaps when the basemap changes)
   useEffect(() => {

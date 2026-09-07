@@ -8,7 +8,7 @@ export function useMapLayer() {
   const [layer, setLayer] = useState<TileLayerId>("street");
   useEffect(() => {
     const stored = localStorage.getItem(KEY);
-    if (stored === "street" || stored === "sat") setLayer(stored);
+    if (stored === "street" || stored === "sat" || stored === "topo") setLayer(stored);
   }, []);
   const update = (l: TileLayerId) => {
     setLayer(l);
