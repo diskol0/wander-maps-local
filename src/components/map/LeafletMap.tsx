@@ -95,6 +95,9 @@ export default function LeafletMap({
   onMovePoint,
   onSelectPoint,
   selection = null,
+  track,
+  you = null,
+  flyTo = null,
   onViewChange,
   className,
 }: LeafletMapProps) {
@@ -102,7 +105,9 @@ export default function LeafletMap({
   const mapRef = useRef<L.Map | null>(null);
   const tileRef = useRef<L.TileLayer | null>(null);
   const overlayRef = useRef<L.LayerGroup | null>(null);
+  const trackRef = useRef<L.LayerGroup | null>(null);
   const fittedRef = useRef(false);
+
 
   const cb = useRef({ onViewChange, onAddPoint, onMovePoint, onSelectPoint });
   cb.current = { onViewChange, onAddPoint, onMovePoint, onSelectPoint };
