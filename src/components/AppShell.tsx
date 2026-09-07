@@ -1,11 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { Mountain, Cloud, Map as MapIcon, Layers } from "lucide-react";
+import { Mountain, Cloud, Compass, Map as MapIcon, Layers } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 const NAV = [
   { to: "/", label: "Mis rutas", icon: MapIcon },
   { to: "/mapas", label: "Mis mapas", icon: Layers },
   { to: "/online", label: "Modo online", icon: Cloud },
+  { to: "/wikiloc", label: "Wikiloc", icon: Compass },
 ] as const;
 
 
