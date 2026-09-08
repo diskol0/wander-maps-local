@@ -96,6 +96,8 @@ function TrailDetail() {
 
 function TrailView({ trail }: { trail: Trail }) {
   const [layer, setLayer] = useMapLayer();
+  const rec = useTrackRecorder();
+
   const [pendingA, setPendingA] = useState<number | null>(null);
   const [selection, setSelection] = useState<[number, number] | null>(null);
 
