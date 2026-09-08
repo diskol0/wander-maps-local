@@ -80,11 +80,11 @@ function MapsPage() {
         <div className="grid gap-4 lg:grid-cols-[1fr_1.6fr]">
           <ul className="space-y-2">
             {regions.map((r) => (
-              <li key={r.id}>
+              <li key={r.id} className="flex items-stretch gap-2">
                 <button
                   type="button"
                   onClick={() => setSelected(r)}
-                  className={`w-full rounded-xl border px-4 py-3 text-left transition-colors ${
+                  className={`flex-1 rounded-xl border px-4 py-3 text-left transition-colors ${
                     selected?.id === r.id
                       ? "border-primary bg-secondary"
                       : "border-border bg-card hover:border-primary/60"
@@ -102,8 +102,26 @@ function MapsPage() {
                     </p>
                   )}
                 </button>
+                <button
+                  type="button"
+                  aria-label={`Borrar el mapa ${r.name}`}
+                  onClick={() => {
+                    if (!confirm(`¿Borrar el mapa "${r.name}"?`)) return;
+                    void (async () => {
+                      await removeRegion(r.id);
+                      await removeGrid(r.id);
+                      const all = await getRegions();
+                      setRegions(all);
+                      setSelected((cur) => (cur?.id === r.id ? (all[0] ?? null) : cur));
+                    })();
+                  }}
+                  className="rounded-xl border border-border px-3 text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
+                >
+                  <Trash2 className="size-4" aria-hidden />
+                </button>
               </li>
             ))}
+
           </ul>
 
           <div className="flex flex-col gap-3">
