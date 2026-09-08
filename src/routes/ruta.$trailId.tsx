@@ -12,6 +12,7 @@ import {
 import { AppShell } from "@/components/AppShell";
 import { MapCanvas } from "@/components/map/MapCanvas";
 import { LayerToggle, useMapLayer } from "@/components/map/LayerToggle";
+import { TrackRecorderPanel, useTrackRecorder } from "@/components/map/TrackRecorder";
 import { downloadGpx } from "@/lib/gpx";
 import { getTrail, type Trail } from "@/lib/trails";
 import { getSavedTrail } from "@/lib/my-trails";
@@ -161,10 +162,15 @@ function TrailView({ trail }: { trail: Trail }) {
           layer={layer}
           selection={selection}
           onSelectPoint={pick}
+          track={rec.points}
+          you={rec.you}
+          flyTo={rec.active && rec.you ? { lat: rec.you.lat, lon: rec.you.lon } : null}
           className="topo-panel h-[420px] overflow-hidden sm:h-[520px]"
         />
         <LayerToggle layer={layer} onChange={setLayer} className="absolute right-3 top-3 z-[500]" />
       </div>
+
+      <TrackRecorderPanel rec={rec} areaName={trail.area} className="mb-4" />
 
       <section className="topo-panel mb-4 p-5">
         <h2 className="text-2xl">Desnivel entre dos puntos</h2>
