@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CloudDownload, HardDrive, Loader2, Mountain, Trash2, TriangleAlert } from "lucide-react";
+import { CloudDownload, HardDrive, Loader2, Mountain, Search, Trash2, TriangleAlert } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { MapCanvas } from "@/components/map/MapCanvas";
 import { LayerToggle, useMapLayer } from "@/components/map/LayerToggle";
@@ -14,6 +14,7 @@ import {
   formatBytes,
   getRegions,
   listTiles,
+  MAX_DETAIL_ZOOM,
   regionIsComplete,
   regionLayers,
   removeRegion,
