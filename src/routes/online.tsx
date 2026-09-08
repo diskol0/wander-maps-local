@@ -44,16 +44,22 @@ export const Route = createFileRoute("/online")({
 
 type Bounds = { south: number; west: number; north: number; east: number };
 
+type Place = { name: string; lat: number; lon: number };
+
 function OnlinePage() {
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const [zoom, setZoom] = useState(12);
-  const [extraZoom, setExtraZoom] = useState(2);
   const [name, setName] = useState("");
   const [progress, setProgress] = useState<DownloadProgress | null>(null);
   const [busy, setBusy] = useState(false);
   const [regions, setRegions] = useState<Region[]>([]);
   const [storage, setStorage] = useState({ tiles: 0, bytes: 0 });
   const [layer, setLayer] = useMapLayer();
+  const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState<Place[]>([]);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [flyTo, setFlyTo] = useState<{ lat: number; lon: number; zoom?: number } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const refresh = useCallback(async () => {
@@ -65,8 +71,40 @@ function OnlinePage() {
     void refresh();
   }, [refresh]);
 
-  const minZoom = Math.max(3, Math.min(zoom, 15));
-  const maxZoom = Math.min(17, minZoom + extraZoom);
+  async function handleSearch() {
+    const q = query.trim();
+    if (!q || searching) return;
+    setSearching(true);
+    setSearchError(null);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=6&q=${encodeURIComponent(q)}`,
+        { headers: { Accept: "application/json" } },
+      );
+      if (!res.ok) throw new Error(String(res.status));
+      const data = (await res.json()) as Array<{ display_name: string; lat: string; lon: string }>;
+      const places = data.map((d) => ({
+        name: d.display_name,
+        lat: Number(d.lat),
+        lon: Number(d.lon),
+      }));
+      setResults(places);
+      if (places.length === 0) setSearchError("No se ha encontrado ese sitio.");
+      else {
+        const first = places[0]!;
+        setFlyTo({ lat: first.lat, lon: first.lon, zoom: 13 });
+        if (!name.trim()) setName(first.name.split(",")[0]!.trim());
+      }
+    } catch {
+      setSearchError("No se ha podido buscar; comprueba la conexión.");
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  // Always download the finest detail available for every layer.
+  const minZoom = Math.max(3, Math.min(zoom, MAX_DETAIL_ZOOM));
+  const maxZoom = MAX_DETAIL_ZOOM;
   const tilesPerLayer = bounds ? listTiles(bounds, minZoom, maxZoom).length : 0;
   const tileCount = tilesPerLayer * ALL_LAYERS.length;
 
@@ -74,6 +112,7 @@ function OnlinePage() {
     setBounds(b);
     setZoom(z);
   }, []);
+
 
   async function runDownload(region: Omit<Region, "tiles" | "bytes" | "savedAt">) {
     setBusy(true);
