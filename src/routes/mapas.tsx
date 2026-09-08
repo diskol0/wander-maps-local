@@ -4,6 +4,7 @@ import { CloudDownload, Map as MapIcon, PencilLine } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { MapCanvas } from "@/components/map/MapCanvas";
 import { LayerToggle, useMapLayer } from "@/components/map/LayerToggle";
+import { TrackRecorderPanel, useTrackRecorder } from "@/components/map/TrackRecorder";
 import {
   formatBytes,
   getRegions,
@@ -35,6 +36,7 @@ function MapsPage() {
   const [regions, setRegions] = useState<Region[]>([]);
   const [selected, setSelected] = useState<Region | null>(null);
   const [layer, setLayer] = useMapLayer();
+  const rec = useTrackRecorder();
 
   const load = useCallback(async () => {
     const all = await getRegions();
@@ -109,6 +111,9 @@ function MapsPage() {
                   offlineOnly
                   layer={layer}
                   fitBounds={selected.bounds}
+                  track={rec.points}
+                  you={rec.you}
+                  flyTo={rec.active && rec.you ? { lat: rec.you.lat, lon: rec.you.lon } : null}
                   className="topo-panel h-[420px] overflow-hidden lg:h-[520px]"
                 />
               )}
@@ -128,6 +133,7 @@ function MapsPage() {
                 <PencilLine className="size-4" aria-hidden /> Crear una ruta en {selected.name}
               </Link>
             )}
+            {selected && <TrackRecorderPanel rec={rec} areaName={selected.name} />}
           </div>
         </div>
       )}

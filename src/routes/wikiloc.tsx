@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Compass, ExternalLink, FileUp, Link2, Loader2, Search } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { importGpxToLibrary } from "@/lib/gpx-import";
@@ -33,6 +33,14 @@ function WikilocPage() {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [dragging, setDragging] = useState(false);
   const fileInput = useRef<HTMLInputElement | null>(null);
+
+  // Opening this page with ?abrir=1 pops the device file browser straight away.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (new URLSearchParams(window.location.search).get("abrir") === "1") {
+      fileInput.current?.click();
+    }
+  }, []);
 
   const searchUrl = query.trim()
     ? `https://www.wikiloc.com/wikiloc/find.do?q=${encodeURIComponent(query.trim())}`
@@ -136,6 +144,14 @@ function WikilocPage() {
             <FileUp className="size-5 text-primary" aria-hidden /> Añadir un GPX
           </h2>
 
+          <button
+            type="button"
+            onClick={() => fileInput.current?.click()}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            <FileUp className="size-4" aria-hidden /> Buscar el GPX en mi dispositivo
+          </button>
+
           <div
             onDragOver={(e) => {
               e.preventDefault();
@@ -164,7 +180,7 @@ function WikilocPage() {
           <input
             ref={fileInput}
             type="file"
-            accept=".gpx,application/gpx+xml,application/xml,text/xml"
+            accept=".gpx,application/gpx+xml,application/octet-stream,application/xml,text/xml"
             multiple
             className="hidden"
             onChange={(e) => void handleFiles(e.target.files)}

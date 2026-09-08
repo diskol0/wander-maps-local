@@ -26,6 +26,9 @@ export const TILE_LAYERS: Record<
   },
 };
 
+/** Finest zoom available across every layer we download. */
+export const MAX_DETAIL_ZOOM = 17;
+
 export const ALL_LAYERS: TileLayerId[] = ["street", "sat", "topo"];
 
 /** @deprecated kept for compatibility */
