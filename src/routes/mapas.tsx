@@ -1,17 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { CloudDownload, Map as MapIcon, PencilLine } from "lucide-react";
+import { CloudDownload, Map as MapIcon, PencilLine, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { MapCanvas } from "@/components/map/MapCanvas";
 import { LayerToggle, useMapLayer } from "@/components/map/LayerToggle";
 import { TrackRecorderPanel, useTrackRecorder } from "@/components/map/TrackRecorder";
+import { removeGrid } from "@/lib/elevation";
 import {
   formatBytes,
   getRegions,
   regionIsComplete,
   regionLayers,
+  removeRegion,
   type Region,
 } from "@/lib/tile-cache";
+
 
 export const Route = createFileRoute("/mapas")({
   head: () => ({
