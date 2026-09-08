@@ -185,9 +185,59 @@ function OnlinePage() {
           <MapCanvas
             onViewChange={onViewChange}
             layer={layer}
+            flyTo={flyTo}
             className="topo-panel h-[440px] overflow-hidden lg:h-[560px]"
           />
           <LayerToggle layer={layer} onChange={setLayer} className="absolute right-3 top-3 z-[500]" />
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void handleSearch();
+            }}
+            className="absolute left-3 top-3 z-[500] w-[min(320px,70%)]"
+          >
+            <div className="flex items-center gap-1 rounded-full border border-border bg-background/90 p-1 backdrop-blur">
+              <Search className="ml-2 size-4 shrink-0 text-muted-foreground" aria-hidden />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar zona (p. ej. Ordesa)"
+                aria-label="Buscar zona"
+                className="w-full bg-transparent px-1 py-1.5 text-sm outline-none"
+              />
+              <button
+                type="submit"
+                disabled={searching}
+                className="shrink-0 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+              >
+                {searching ? "…" : "Ir"}
+              </button>
+            </div>
+            {searchError && (
+              <p className="mt-1 rounded-lg bg-background/90 px-3 py-1 text-xs text-destructive backdrop-blur">
+                {searchError}
+              </p>
+            )}
+            {results.length > 1 && (
+              <ul className="mt-1 max-h-52 overflow-auto rounded-xl border border-border bg-background/95 backdrop-blur">
+                {results.map((p) => (
+                  <li key={`${p.lat},${p.lon}`}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFlyTo({ lat: p.lat, lon: p.lon, zoom: 13 });
+                        setResults([]);
+                        setName(p.name.split(",")[0]!.trim());
+                      }}
+                      className="block w-full px-3 py-2 text-left text-xs hover:bg-secondary"
+                    >
+                      {p.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </form>
         </div>
 
         <div className="flex flex-col gap-4">
@@ -199,29 +249,20 @@ function OnlinePage() {
               placeholder="Nombre de la zona (p. ej. Ordesa)"
               className="mt-3 w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm outline-none focus:border-primary"
             />
-            <label className="mt-4 block text-sm text-muted-foreground" htmlFor="detalle">
-              Nivel de detalle: zoom {minZoom}–{maxZoom}
-            </label>
-            <input
-              id="detalle"
-              type="range"
-              min={0}
-              max={4}
-              step={1}
-              value={extraZoom}
-              onChange={(e) => setExtraZoom(Number(e.target.value))}
-              className="mt-2 w-full accent-[var(--color-primary)]"
-            />
+            <p className="mt-4 text-sm text-muted-foreground">
+              Detalle máximo: zoom {minZoom}–{maxZoom}
+            </p>
             <p className="mt-3 text-sm text-muted-foreground">
               <span className="font-display text-2xl text-foreground">{tileCount}</span> teselas
-              (callejero + satélite) · aprox. {formatBytes(tileCount * 16000)}
+              (callejero + satélite + curvas) · aprox. {formatBytes(tileCount * 16000)}
             </p>
             {tileCount > 6000 && (
               <p className="mt-2 flex items-start gap-1 text-xs text-destructive">
                 <TriangleAlert className="mt-0.5 size-3 shrink-0" aria-hidden />
-                Zona muy grande: reduce el detalle o acerca el mapa antes de descargar.
+                Zona muy grande: acerca el mapa antes de descargar.
               </p>
             )}
+
             <button
               type="button"
               disabled={!bounds || busy || tileCount === 0}
