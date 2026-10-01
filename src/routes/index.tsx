@@ -4,7 +4,7 @@ import { ArrowUpRight, Download, Mountain, Route as RouteIcon, Timer, Trash2, Tr
 import { AppShell } from "@/components/AppShell";
 import { TRAILS, type Trail } from "@/lib/trails";
 import { downloadGpx } from "@/lib/gpx";
-import { deleteTrail, getSavedTrails, type SavedTrail } from "@/lib/my-trails";
+import { deleteTrail, getHiddenDemoTrails, getSavedTrails, hideDemoTrail, type SavedTrail } from "@/lib/my-trails";
 import { cachedBytes, countCachedTiles, formatBytes, getRegions } from "@/lib/tile-cache";
 
 export const Route = createFileRoute("/")({
@@ -101,10 +101,12 @@ function Index() {
   const [query, setQuery] = useState("");
   const [stats, setStats] = useState({ regions: 0, tiles: 0, bytes: 0 });
   const [saved, setSaved] = useState<SavedTrail[]>([]);
+  const [hidden, setHidden] = useState<string[]>([]);
 
   useEffect(() => {
     void (async () => {
       setSaved(await getSavedTrails());
+      setHidden(await getHiddenDemoTrails());
       setStats({
         regions: (await getRegions()).length,
         tiles: await countCachedTiles(),
@@ -113,16 +115,17 @@ function Index() {
     })();
   }, []);
 
+  const demo = useMemo(() => TRAILS.filter((t) => !hidden.includes(t.id)), [hidden]);
   const trails = useMemo(
     () =>
-      [...saved, ...TRAILS]
+      [...saved, ...demo]
         .filter((t) => activity === "Todas" || t.activity === activity)
         .filter(
         (t) =>
           t.name.toLowerCase().includes(query.toLowerCase()) ||
           t.area.toLowerCase().includes(query.toLowerCase()),
       ),
-    [activity, query, saved],
+    [activity, query, saved, demo],
   );
 
   return (
@@ -139,7 +142,7 @@ function Index() {
         <div className="mt-6 grid gap-3 sm:grid-cols-3">
           <div className="rounded-lg bg-secondary px-4 py-3">
             <p className="eyebrow">Rutas</p>
-            <p className="font-display text-3xl">{TRAILS.length + saved.length}</p>
+            <p className="font-display text-3xl">{demo.length + saved.length}</p>
           </div>
           <div className="rounded-lg bg-secondary px-4 py-3">
             <p className="eyebrow">Zonas guardadas</p>
@@ -182,13 +185,14 @@ function Index() {
           <TrailCard
             key={t.id}
             trail={t}
-            {...(saved.some((s) => s.id === t.id)
-              ? {
-                  onDelete: () => {
-                    void deleteTrail(t.id).then(async () => setSaved(await getSavedTrails()));
-                  },
-                }
-              : {})}
+            onDelete={() => {
+              if (!confirm(`¿Borrar la ruta "${t.name}"?`)) return;
+              if (saved.some((s) => s.id === t.id)) {
+                void deleteTrail(t.id).then(async () => setSaved(await getSavedTrails()));
+              } else {
+                void hideDemoTrail(t.id).then(async () => setHidden(await getHiddenDemoTrails()));
+              }
+            }}
           />
         ))}
       </div>
