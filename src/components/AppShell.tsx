@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Mountain, Cloud, Compass, Map as MapIcon, Layers } from "lucide-react";
+import { Mountain, Cloud, Compass, Map as MapIcon, Layers, Download } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 const NAV = [
@@ -9,6 +9,31 @@ const NAV = [
   { to: "/wikiloc", label: "Wikiloc", icon: Compass },
 ] as const;
 
+type BeforeInstallPromptEvent = Event & { prompt: () => Promise<void> };
+
+/** Shows "Instalar" only when the browser offers the install prompt. */
+function InstallButton() {
+  const [evt, setEvt] = useState<BeforeInstallPromptEvent | null>(null);
+  useEffect(() => {
+    const onPrompt = (e: Event) => {
+      e.preventDefault();
+      setEvt(e as BeforeInstallPromptEvent);
+    };
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    return () => window.removeEventListener("beforeinstallprompt", onPrompt);
+  }, []);
+  if (!evt) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => void evt.prompt()}
+      className="flex items-center gap-2 rounded-full bg-accent px-3 py-2 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90"
+    >
+      <Download className="size-4" aria-hidden />
+      <span className="hidden sm:inline">Instalar</span>
+    </button>
+  );
+}
 
 function OnlineBadge() {
   const [online, setOnline] = useState(true);
@@ -32,6 +57,7 @@ function OnlineBadge() {
     </span>
   );
 }
+
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -57,7 +83,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Link>
             ))}
           </nav>
-          <div className="hidden md:block">
+          <div className="hidden items-center gap-2 md:flex">
+            <InstallButton />
             <OnlineBadge />
           </div>
         </div>

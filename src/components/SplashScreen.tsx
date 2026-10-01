@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 
 /** Black launch screen with the app logo and name, shown briefly on start-up. */
 export function SplashScreen() {
+  const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(true);
   const [fading, setFading] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const a = setTimeout(() => setFading(true), 1100);
     const b = setTimeout(() => setVisible(false), 1600);
     return () => {
@@ -14,7 +16,8 @@ export function SplashScreen() {
     };
   }, []);
 
-  if (!visible) return null;
+  if (!mounted || !visible) return null;
+
 
   return (
     <div
