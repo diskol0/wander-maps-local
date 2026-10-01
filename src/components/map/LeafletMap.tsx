@@ -194,6 +194,7 @@ export default function LeafletMap({
     emit();
 
     const refit = () => {
+      if (mapRef.current !== map) return;
       map.invalidateSize();
       if (boundsRef.current) map.fitBounds(boundsRef.current);
     };
