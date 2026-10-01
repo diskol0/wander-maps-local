@@ -8,3 +8,4 @@
 - [x] Buscador de zonas en modo online (Nominatim) y descarga siempre a detalle máximo (zoom 17)
 - [x] Importar GPX abriendo directamente el explorador de archivos del dispositivo
 - [x] Modo seguimiento GPS (traza azul en vivo) con guardado en la biblioteca
+- [ ] Generar ZIP del proyecto completo para descarga y prueba local
