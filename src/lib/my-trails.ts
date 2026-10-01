@@ -26,3 +26,13 @@ export async function deleteTrail(id: string) {
     store,
   );
 }
+
+/** Built-in demo trails the user has removed from their library. */
+export async function getHiddenDemoTrails(): Promise<string[]> {
+  return (await get<string[]>("hidden-demo", store)) ?? [];
+}
+
+export async function hideDemoTrail(id: string) {
+  const all = await getHiddenDemoTrails();
+  if (!all.includes(id)) await set("hidden-demo", [...all, id], store);
+}

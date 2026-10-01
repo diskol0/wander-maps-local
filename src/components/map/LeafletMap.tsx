@@ -107,6 +107,8 @@ export default function LeafletMap({
   const overlayRef = useRef<L.LayerGroup | null>(null);
   const trackRef = useRef<L.LayerGroup | null>(null);
   const fittedRef = useRef(false);
+  const boundsRef = useRef<L.LatLngBounds | null>(null);
+  const meRef = useRef<L.LayerGroup | null>(null);
 
 
   const cb = useRef({ onViewChange, onAddPoint, onMovePoint, onSelectPoint });
@@ -124,6 +126,48 @@ export default function LeafletMap({
     mapRef.current = map;
     overlayRef.current = L.layerGroup().addTo(map);
     trackRef.current = L.layerGroup().addTo(map);
+    meRef.current = L.layerGroup().addTo(map);
+
+    // "Centrar en mi ubicación" control
+    const Locate = L.Control.extend({
+      onAdd() {
+        const btn = L.DomUtil.create("button", "leaflet-bar");
+        btn.type = "button";
+        btn.title = "Centrar en mi ubicación";
+        btn.setAttribute("aria-label", "Centrar en mi ubicación");
+        btn.style.cssText =
+          "width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:#fff;color:#222;cursor:pointer;";
+        btn.innerHTML =
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>';
+        L.DomEvent.disableClickPropagation(btn);
+        L.DomEvent.on(btn, "click", () => {
+          if (!navigator.geolocation) {
+            alert("Tu dispositivo no permite obtener la ubicación.");
+            return;
+          }
+          btn.style.opacity = "0.5";
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              btn.style.opacity = "1";
+              const ll: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+              map.setView(ll, Math.max(map.getZoom(), 15));
+              const g = meRef.current;
+              if (!g) return;
+              g.clearLayers();
+              L.circle(ll, { radius: pos.coords.accuracy, color: "#4aa8ff", weight: 1, fillOpacity: 0.12 }).addTo(g);
+              L.circleMarker(ll, { radius: 7, color: "#ffffff", weight: 2, fillColor: "#4aa8ff", fillOpacity: 1 }).addTo(g);
+            },
+            () => {
+              btn.style.opacity = "1";
+              alert("No pudimos obtener tu ubicación. Revisa que el permiso de ubicación esté activado.");
+            },
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
+          );
+        });
+        return btn;
+      },
+    });
+    new Locate({ position: "topleft" }).addTo(map);
 
 
     if (fitBounds) {
@@ -149,13 +193,19 @@ export default function LeafletMap({
     });
     emit();
 
-    setTimeout(() => map.invalidateSize(), 120);
+    const refit = () => {
+      map.invalidateSize();
+      if (boundsRef.current) map.fitBounds(boundsRef.current);
+    };
+    setTimeout(refit, 120);
+    setTimeout(refit, 500);
 
     return () => {
       map.remove();
       mapRef.current = null;
       overlayRef.current = null;
       trackRef.current = null;
+      meRef.current = null;
       tileRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -281,8 +331,17 @@ export default function LeafletMap({
     });
 
     if (!fittedRef.current && latlngs.length > 1) {
-      map.fitBounds(L.latLngBounds(latlngs).pad(0.15));
+      boundsRef.current = L.latLngBounds(latlngs).pad(0.15);
+      map.invalidateSize();
+      map.fitBounds(boundsRef.current);
       fittedRef.current = true;
+      // Re-fit once layout has settled (container may still be sizing).
+      setTimeout(() => {
+        if (mapRef.current === map && boundsRef.current) {
+          map.invalidateSize();
+          map.fitBounds(boundsRef.current);
+        }
+      }, 300);
     }
   }, [points, selection, editable, onSelectPoint]);
 
