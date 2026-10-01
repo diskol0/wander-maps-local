@@ -195,8 +195,8 @@ export default function LeafletMap({
 
     const refit = () => {
       if (mapRef.current !== map) return;
-      map.invalidateSize();
-      if (boundsRef.current) map.fitBounds(boundsRef.current);
+      map.invalidateSize({ animate: false });
+      if (boundsRef.current) map.fitBounds(boundsRef.current, { animate: false });
     };
     setTimeout(refit, 120);
     setTimeout(refit, 500);
@@ -333,14 +333,14 @@ export default function LeafletMap({
 
     if (!fittedRef.current && latlngs.length > 1) {
       boundsRef.current = L.latLngBounds(latlngs).pad(0.15);
-      map.invalidateSize();
-      map.fitBounds(boundsRef.current);
+      map.invalidateSize({ animate: false });
+      map.fitBounds(boundsRef.current, { animate: false });
       fittedRef.current = true;
       // Re-fit once layout has settled (container may still be sizing).
       setTimeout(() => {
         if (mapRef.current === map && boundsRef.current) {
-          map.invalidateSize();
-          map.fitBounds(boundsRef.current);
+          map.invalidateSize({ animate: false });
+          map.fitBounds(boundsRef.current, { animate: false });
         }
       }, 300);
     }
