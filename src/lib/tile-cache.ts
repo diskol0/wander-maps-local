@@ -274,7 +274,7 @@ async function fetchCountryBounds(center: { lat: number; lon: number }) {
  * be located when the user zooms far out.
  */
 export async function downloadOverview(
-  region: Pick<Region, "bounds" | "layers">,
+  region: Pick<Region, "bounds"> & { layers?: TileLayerId[] },
   onProgress: (p: DownloadProgress) => void,
   signal?: AbortSignal,
 ): Promise<OverviewInfo | null> {

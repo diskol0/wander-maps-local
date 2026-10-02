@@ -155,7 +155,8 @@ function OnlinePage() {
           overview = null;
         }
       }
-      await saveRegion({ ...saved, hasElevation, overview: overview ?? undefined });
+      if (overview) await saveRegion({ ...saved, hasElevation, overview });
+      else await saveRegion({ ...saved, hasElevation });
       await refresh();
     } finally {
       setBusy(false);

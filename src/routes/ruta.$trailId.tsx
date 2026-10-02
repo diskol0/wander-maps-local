@@ -95,7 +95,7 @@ function TrailDetail() {
   return <TrailView trail={trail} regionId={(trail as SavedTrail).regionId} />;
 }
 
-function TrailView({ trail, regionId }: { trail: Trail; regionId?: string }) {
+function TrailView({ trail, regionId }: { trail: Trail; regionId?: string | undefined }) {
   const [layer, setLayer] = useMapLayer();
   const rec = useTrackRecorder();
   const [region, setRegion] = useState<Region | null>(null);

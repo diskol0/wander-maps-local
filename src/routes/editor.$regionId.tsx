@@ -251,11 +251,11 @@ function EditorPage() {
             {shown && (
               <dl className="mt-3 space-y-2 text-sm">
                 {[
-                  ["Distancia", `${segment.distanceKm} km`],
-                  ["Diferencia de cota", `${segment.deltaM > 0 ? "+" : ""}${segment.deltaM} m`],
-                  ["Desnivel acumulado +", `${segment.ascentM} m`],
-                  ["Desnivel acumulado −", `${segment.descentM} m`],
-                  ["Pendiente media", `${segment.slopePct} %`],
+                  ["Distancia", `${shown.distanceKm} km`],
+                  ["Diferencia de cota", `${shown.deltaM > 0 ? "+" : ""}${shown.deltaM} m`],
+                  ["Desnivel acumulado +", `${shown.ascentM} m`],
+                  ["Desnivel acumulado −", `${shown.descentM} m`],
+                  ["Pendiente media", `${shown.slopePct} %`],
                 ].map(([k, v]) => (
                   <div key={k} className="flex items-center justify-between rounded-lg bg-secondary px-3 py-2">
                     <dt className="text-muted-foreground">{k}</dt>
