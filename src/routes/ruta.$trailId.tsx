@@ -92,12 +92,18 @@ function TrailDetail() {
     );
   }
 
-  return <TrailView trail={trail} />;
+  return <TrailView trail={trail} regionId={(trail as SavedTrail).regionId} />;
 }
 
-function TrailView({ trail }: { trail: Trail }) {
+function TrailView({ trail, regionId }: { trail: Trail; regionId?: string }) {
   const [layer, setLayer] = useMapLayer();
   const rec = useTrackRecorder();
+  const [region, setRegion] = useState<Region | null>(null);
+
+  useEffect(() => {
+    if (!regionId) return;
+    void getRegion(regionId).then(setRegion);
+  }, [regionId]);
 
   const [pendingA, setPendingA] = useState<number | null>(null);
   const [selection, setSelection] = useState<[number, number] | null>(null);
@@ -165,6 +171,8 @@ function TrailView({ trail }: { trail: Trail }) {
           layer={layer}
           selection={selection}
           onSelectPoint={pick}
+          overview={region?.overview ? { ...region.overview.bounds, zoom: region.overview.zoom } : null}
+          detailMinZoom={region?.minZoom ?? 0}
           track={rec.points}
           you={rec.you}
           flyTo={rec.active && rec.you ? { lat: rec.you.lat, lon: rec.you.lon } : null}
