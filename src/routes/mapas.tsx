@@ -132,6 +132,12 @@ function MapsPage() {
                   offlineOnly
                   layer={layer}
                   fitBounds={selected.bounds}
+                  overview={
+                    selected.overview
+                      ? { ...selected.overview.bounds, zoom: selected.overview.zoom }
+                      : null
+                  }
+                  detailMinZoom={selected.minZoom}
                   track={rec.points}
                   you={rec.you}
                   flyTo={rec.active && rec.you ? { lat: rec.you.lat, lon: rec.you.lon } : null}

@@ -95,6 +95,13 @@ function EditorPage() {
     return slice.length > 1 ? segmentStats(densify(slice, eleAt)) : null;
   }, [selection, points, eleAt]);
 
+  // Live desnivel for the last two placed points (before any A/B selection).
+  const lastSeg = useMemo(() => {
+    if (points.length < 2 || selection) return null;
+    return segmentStats(densify(points.slice(-2), eleAt));
+  }, [points, eleAt, selection]);
+  const shown = selection ? segment : lastSeg;
+
   async function handleSave() {
     if (points.length < 2 || saving) return;
     setSaving(true);
@@ -237,16 +244,18 @@ function EditorPage() {
                 ? `Punto A elegido (#${pendingA + 1}). Toca ahora el punto B.`
                 : selection
                   ? `Tramo #${Math.min(...selection) + 1} → #${Math.max(...selection) + 1}`
-                  : "Toca dos puntos del mapa para medir el tramo."}
+                  : lastSeg
+                    ? `Último tramo (#${points.length - 1} → #${points.length}) — se actualiza con cada punto`
+                    : "Toca dos puntos del mapa para medir el tramo."}
             </p>
-            {segment && (
+            {shown && (
               <dl className="mt-3 space-y-2 text-sm">
                 {[
-                  ["Distancia", `${segment.distanceKm} km`],
-                  ["Diferencia de cota", `${segment.deltaM > 0 ? "+" : ""}${segment.deltaM} m`],
-                  ["Desnivel acumulado +", `${segment.ascentM} m`],
-                  ["Desnivel acumulado −", `${segment.descentM} m`],
-                  ["Pendiente media", `${segment.slopePct} %`],
+                  ["Distancia", `${shown.distanceKm} km`],
+                  ["Diferencia de cota", `${shown.deltaM > 0 ? "+" : ""}${shown.deltaM} m`],
+                  ["Desnivel acumulado +", `${shown.ascentM} m`],
+                  ["Desnivel acumulado −", `${shown.descentM} m`],
+                  ["Pendiente media", `${shown.slopePct} %`],
                 ].map(([k, v]) => (
                   <div key={k} className="flex items-center justify-between rounded-lg bg-secondary px-3 py-2">
                     <dt className="text-muted-foreground">{k}</dt>
@@ -302,6 +311,12 @@ function EditorPage() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="mt-3 flex items-center justify-between rounded-lg bg-secondary px-3 py-2 text-sm">
+              <span className="text-muted-foreground">Total de la ruta</span>
+              <span className="font-display">
+                {total.distanceKm} km · +{total.ascentM} m · −{total.descentM} m
+              </span>
             </div>
             <button
               type="button"

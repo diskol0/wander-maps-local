@@ -49,6 +49,8 @@ export type Region = {
   savedAt: number;
   layers?: TileLayerId[];
   hasElevation?: boolean;
+  /** Country-level map (low zoom) so the region is findable when zoomed out. */
+  overview?: { bounds: Region["bounds"]; zoom: number; tiles: number; country: string };
 };
 
 /** Regions saved before multi-layer support only contain street tiles. */
@@ -61,8 +63,12 @@ export function regionIsComplete(r: Region) {
   return ALL_LAYERS.every((x) => l.includes(x)) && r.hasElevation === true;
 }
 
-const tileKey = (layer: TileLayerId, z: number, x: number, y: number) =>
-  layer === "street" ? `${z}/${x}/${y}` : `${layer}:${z}/${x}/${y}`;
+const tileKey = (layer: TileLayerId, z: number, x: number, y: number, prefix?: string) =>
+  prefix
+    ? `${prefix}:${layer}:${z}/${x}/${y}`
+    : layer === "street"
+      ? `${z}/${x}/${y}`
+      : `${layer}:${z}/${x}/${y}`;
 
 export function lonToTileX(lon: number, z: number) {
   return Math.floor(((lon + 180) / 360) * 2 ** z);
@@ -102,12 +108,25 @@ export function tileUrl(layer: TileLayerId, z: number, x: number, y: number) {
     .replace("{y}", String(y));
 }
 
-export async function getCachedTile(layer: TileLayerId, z: number, x: number, y: number) {
-  return (await get<Blob>(tileKey(layer, z, x, y), tileStore)) ?? null;
+export async function getCachedTile(
+  layer: TileLayerId,
+  z: number,
+  x: number,
+  y: number,
+  prefix?: string,
+) {
+  return (await get<Blob>(tileKey(layer, z, x, y, prefix), tileStore)) ?? null;
 }
 
-export async function putTile(layer: TileLayerId, z: number, x: number, y: number, blob: Blob) {
-  await set(tileKey(layer, z, x, y), blob, tileStore);
+export async function putTile(
+  layer: TileLayerId,
+  z: number,
+  x: number,
+  y: number,
+  blob: Blob,
+  prefix?: string,
+) {
+  await set(tileKey(layer, z, x, y, prefix), blob, tileStore);
 }
 
 export async function countCachedTiles() {
@@ -214,4 +233,110 @@ export function formatBytes(n: number) {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** Zoom of the country-level overview map. */
+export const OVERVIEW_ZOOM = 8;
+/** Cap of overview tiles per layer (keeps huge countries bounded). */
+const MAX_OV_TILES = 340;
+
+type OverviewInfo = NonNullable<Region["overview"]>;
+
+async function fetchCountryBounds(center: { lat: number; lon: number }) {
+  try {
+    const rev = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${center.lat}&lon=${center.lon}&zoom=4`,
+      { headers: { Accept: "application/json" } },
+    );
+    if (!rev.ok) return null;
+    const j = (await rev.json()) as { address?: { country?: string } };
+    const country = j.address?.country;
+    if (!country) return null;
+    const sr = await fetch(
+      `https://nominatim.openstreetmap.org/search?country=${encodeURIComponent(country)}&format=json&limit=1`,
+      { headers: { Accept: "application/json" } },
+    );
+    if (!sr.ok) return null;
+    const arr = (await sr.json()) as Array<{ boundingbox?: [string, string, string, string] }>;
+    const bb = arr[0]?.boundingbox;
+    if (!bb) return null;
+    return {
+      name: country,
+      bounds: { south: +bb[0], north: +bb[1], west: +bb[2], east: +bb[3] },
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Downloads a low-zoom (whole country) map so the downloaded region can still
+ * be located when the user zooms far out.
+ */
+export async function downloadOverview(
+  region: Pick<Region, "bounds"> & { layers?: TileLayerId[] },
+  onProgress: (p: DownloadProgress) => void,
+  signal?: AbortSignal,
+): Promise<OverviewInfo | null> {
+  const center = {
+    lat: (region.bounds.south + region.bounds.north) / 2,
+    lon: (region.bounds.west + region.bounds.east) / 2,
+  };
+  const country = await fetchCountryBounds(center);
+  if (!country) return null;
+
+  const z = OVERVIEW_ZOOM;
+  let b = country.bounds;
+  let tiles = listTiles(b, z, z);
+  if (tiles.length > MAX_OV_TILES) {
+    // Country too big at zoom 8: fall back to the region plus margin.
+    b = {
+      south: region.bounds.south - 2,
+      west: region.bounds.west - 2,
+      north: region.bounds.north + 2,
+      east: region.bounds.east + 2,
+    };
+    tiles = listTiles(b, z, z);
+  }
+
+  const layers = regionLayers(region as Region);
+  const jobs = layers.flatMap((layer) => tiles.map((t) => ({ ...t, layer })));
+
+  let done = 0;
+  let bytes = 0;
+  let failed = 0;
+  const concurrency = 6;
+  let cursor = 0;
+
+  const emit = () =>
+    onProgress({ done, total: jobs.length, bytes, failed, label: "Descargando mapa del país" });
+
+  async function worker() {
+    while (cursor < jobs.length) {
+      if (signal?.aborted) return;
+      const t = jobs[cursor++]!;
+      try {
+        const existing = await getCachedTile(t.layer, t.z, t.x, t.y, "ov");
+        if (existing) {
+          bytes += existing.size;
+        } else {
+          const res = await fetch(tileUrl(t.layer, t.z, t.x, t.y), { signal: signal ?? null });
+          if (!res.ok) throw new Error(String(res.status));
+          const blob = await res.blob();
+          await putTile(t.layer, t.z, t.x, t.y, blob, "ov");
+          bytes += blob.size;
+        }
+      } catch {
+        failed++;
+      }
+      done++;
+      if (done % 4 === 0 || done === jobs.length) emit();
+    }
+  }
+
+  emit();
+  await Promise.all(Array.from({ length: concurrency }, worker));
+  if (signal?.aborted) return null;
+
+  return { bounds: b, zoom: z, tiles: jobs.length - failed, country: country.name };
 }

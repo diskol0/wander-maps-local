@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { MapCanvas } from "@/components/map/MapCanvas";
 import { LayerToggle, useMapLayer } from "@/components/map/LayerToggle";
 import { downloadElevationGrid, removeGrid } from "@/lib/elevation";
+import { downloadOverview } from "@/lib/tile-cache";
 import {
   ALL_LAYERS,
   cachedBytes,
@@ -61,6 +62,7 @@ function OnlinePage() {
   const [results, setResults] = useState<Place[]>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [flyTo, setFlyTo] = useState<{ lat: number; lon: number; zoom?: number } | null>(null);
+  const [maxZoomSel, setMaxZoomSel] = useState(MAX_DETAIL_ZOOM);
   const abortRef = useRef<AbortController | null>(null);
 
   const refresh = useCallback(async () => {
@@ -103,9 +105,9 @@ function OnlinePage() {
     }
   }
 
-  // Always download the finest detail available for every layer.
-  const minZoom = Math.max(3, Math.min(zoom, MAX_DETAIL_ZOOM));
-  const maxZoom = MAX_DETAIL_ZOOM;
+  // The user picks the finest detail to store; default is the maximum.
+  const minZoom = Math.max(3, Math.min(zoom, maxZoomSel));
+  const maxZoom = maxZoomSel;
   const tilesPerLayer = bounds ? listTiles(bounds, minZoom, maxZoom).length : 0;
   const tileCount = tilesPerLayer * ALL_LAYERS.length;
 
@@ -141,7 +143,20 @@ function OnlinePage() {
       } catch {
         hasElevation = false;
       }
-      await saveRegion({ ...saved, hasElevation });
+      let overview = region.overview ?? null;
+      if (!overview) {
+        try {
+          overview = await downloadOverview(
+            { bounds: region.bounds, layers: region.layers ?? ALL_LAYERS },
+            setProgress,
+            controller.signal,
+          );
+        } catch {
+          overview = null;
+        }
+      }
+      if (overview) await saveRegion({ ...saved, hasElevation, overview });
+      else await saveRegion({ ...saved, hasElevation });
       await refresh();
     } finally {
       setBusy(false);
@@ -250,8 +265,24 @@ function OnlinePage() {
               placeholder="Nombre de la zona (p. ej. Ordesa)"
               className="mt-3 w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm outline-none focus:border-primary"
             />
-            <p className="mt-4 text-sm text-muted-foreground">
-              Detalle máximo: zoom {minZoom}–{maxZoom}
+            <label className="mt-4 block">
+              <span className="eyebrow">Detalle máximo al descargar</span>
+              <select
+                value={maxZoomSel}
+                onChange={(e) => setMaxZoomSel(Number(e.target.value))}
+                className="mt-2 w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm outline-none focus:border-primary"
+                aria-label="Detalle máximo al descargar"
+              >
+                {[12, 13, 14, 15, 16, MAX_DETAIL_ZOOM].map((z) => (
+                  <option key={z} value={z}>
+                    Zoom {z}
+                    {z === MAX_DETAIL_ZOOM ? " — máximo detalle" : z <= 13 ? " — menos espacio" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Teselas de zoom {minZoom}–{maxZoom} (el mapa del país a zoom 8 se incluye siempre)
             </p>
             <p className="mt-3 text-sm text-muted-foreground">
               <span className="font-display text-2xl text-foreground">{tileCount}</span> teselas
@@ -313,6 +344,7 @@ function OnlinePage() {
                           zoom {r.minZoom}–{r.maxZoom} · {r.tiles} teselas · {formatBytes(r.bytes)} ·{" "}
                           {regionLayers(r).length > 1 ? "callejero + satélite" : "solo callejero"}
                           {r.hasElevation ? " · altitudes" : ""}
+                          {r.overview ? " · mapa del país" : ""}
                         </p>
                       </div>
                       <button
