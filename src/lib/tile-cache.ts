@@ -49,6 +49,8 @@ export type Region = {
   savedAt: number;
   layers?: TileLayerId[];
   hasElevation?: boolean;
+  /** Country-level map (low zoom) so the region is findable when zoomed out. */
+  overview?: { bounds: Region["bounds"]; zoom: number; tiles: number; country: string };
 };
 
 /** Regions saved before multi-layer support only contain street tiles. */
@@ -61,8 +63,12 @@ export function regionIsComplete(r: Region) {
   return ALL_LAYERS.every((x) => l.includes(x)) && r.hasElevation === true;
 }
 
-const tileKey = (layer: TileLayerId, z: number, x: number, y: number) =>
-  layer === "street" ? `${z}/${x}/${y}` : `${layer}:${z}/${x}/${y}`;
+const tileKey = (layer: TileLayerId, z: number, x: number, y: number, prefix?: string) =>
+  prefix
+    ? `${prefix}:${layer}:${z}/${x}/${y}`
+    : layer === "street"
+      ? `${z}/${x}/${y}`
+      : `${layer}:${z}/${x}/${y}`;
 
 export function lonToTileX(lon: number, z: number) {
   return Math.floor(((lon + 180) / 360) * 2 ** z);
@@ -102,12 +108,25 @@ export function tileUrl(layer: TileLayerId, z: number, x: number, y: number) {
     .replace("{y}", String(y));
 }
 
-export async function getCachedTile(layer: TileLayerId, z: number, x: number, y: number) {
-  return (await get<Blob>(tileKey(layer, z, x, y), tileStore)) ?? null;
+export async function getCachedTile(
+  layer: TileLayerId,
+  z: number,
+  x: number,
+  y: number,
+  prefix?: string,
+) {
+  return (await get<Blob>(tileKey(layer, z, x, y, prefix), tileStore)) ?? null;
 }
 
-export async function putTile(layer: TileLayerId, z: number, x: number, y: number, blob: Blob) {
-  await set(tileKey(layer, z, x, y), blob, tileStore);
+export async function putTile(
+  layer: TileLayerId,
+  z: number,
+  x: number,
+  y: number,
+  blob: Blob,
+  prefix?: string,
+) {
+  await set(tileKey(layer, z, x, y, prefix), blob, tileStore);
 }
 
 export async function countCachedTiles() {
