@@ -28,6 +28,10 @@ export type LeafletMapProps = {
   you?: LatLon | null;
   /** Recenter the map on this position when it changes. */
   flyTo?: { lat: number; lon: number; zoom?: number } | null;
+  /** Country-level overview (low zoom) shown when zoomed out of the detail range. */
+  overview?: { south: number; west: number; north: number; east: number; zoom: number } | null;
+  /** Zoom below which the overview map replaces the detail tiles. */
+  detailMinZoom?: number;
   onViewChange?: (b: { south: number; west: number; north: number; east: number }, zoom: number) => void;
   className?: string;
 };
@@ -43,7 +47,11 @@ const CachedTileLayer = L.TileLayer.extend({
   createTile(this: L.TileLayer, coords: L.Coords, done: (err?: Error, tile?: HTMLElement) => void) {
     const img = document.createElement("img");
     img.alt = "";
-    const opts = this.options as { offlineOnly?: boolean; layerId?: TileLayerId };
+    const opts = this.options as {
+      offlineOnly?: boolean;
+      layerId?: TileLayerId;
+      keyPrefix?: string;
+    };
     const layerId: TileLayerId = opts.layerId ?? "street";
     const offlineOnly = opts.offlineOnly;
     const spec = TILE_LAYERS[layerId];
@@ -51,7 +59,7 @@ const CachedTileLayer = L.TileLayer.extend({
 
     void (async () => {
       try {
-        const cached = await getCachedTile(layerId, coords.z, coords.x, coords.y);
+        const cached = await getCachedTile(layerId, coords.z, coords.x, coords.y, opts.keyPrefix);
         if (cached) {
           img.src = URL.createObjectURL(cached);
           img.onload = () => {
