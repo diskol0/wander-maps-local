@@ -15,7 +15,8 @@ import { LayerToggle, useMapLayer } from "@/components/map/LayerToggle";
 import { TrackRecorderPanel, useTrackRecorder } from "@/components/map/TrackRecorder";
 import { downloadGpx } from "@/lib/gpx";
 import { getTrail, type Trail } from "@/lib/trails";
-import { getSavedTrail } from "@/lib/my-trails";
+import { getSavedTrail, type SavedTrail } from "@/lib/my-trails";
+import { getRegion, type Region } from "@/lib/tile-cache";
 import { segmentStats } from "@/lib/elevation";
 
 export const Route = createFileRoute("/ruta/$trailId")({
