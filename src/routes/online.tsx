@@ -143,7 +143,19 @@ function OnlinePage() {
       } catch {
         hasElevation = false;
       }
-      await saveRegion({ ...saved, hasElevation });
+      let overview = region.overview ?? null;
+      if (!overview) {
+        try {
+          overview = await downloadOverview(
+            { bounds: region.bounds, layers: region.layers },
+            setProgress,
+            controller.signal,
+          );
+        } catch {
+          overview = null;
+        }
+      }
+      await saveRegion({ ...saved, hasElevation, overview: overview ?? undefined });
       await refresh();
     } finally {
       setBusy(false);
@@ -252,8 +264,24 @@ function OnlinePage() {
               placeholder="Nombre de la zona (p. ej. Ordesa)"
               className="mt-3 w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm outline-none focus:border-primary"
             />
-            <p className="mt-4 text-sm text-muted-foreground">
-              Detalle máximo: zoom {minZoom}–{maxZoom}
+            <label className="mt-4 block">
+              <span className="eyebrow">Detalle máximo al descargar</span>
+              <select
+                value={maxZoomSel}
+                onChange={(e) => setMaxZoomSel(Number(e.target.value))}
+                className="mt-2 w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm outline-none focus:border-primary"
+                aria-label="Detalle máximo al descargar"
+              >
+                {[12, 13, 14, 15, 16, MAX_DETAIL_ZOOM].map((z) => (
+                  <option key={z} value={z}>
+                    Zoom {z}
+                    {z === MAX_DETAIL_ZOOM ? " — máximo detalle" : z <= 13 ? " — menos espacio" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Teselas de zoom {minZoom}–{maxZoom} (el mapa del país a zoom 8 se incluye siempre)
             </p>
             <p className="mt-3 text-sm text-muted-foreground">
               <span className="font-display text-2xl text-foreground">{tileCount}</span> teselas
@@ -315,6 +343,7 @@ function OnlinePage() {
                           zoom {r.minZoom}–{r.maxZoom} · {r.tiles} teselas · {formatBytes(r.bytes)} ·{" "}
                           {regionLayers(r).length > 1 ? "callejero + satélite" : "solo callejero"}
                           {r.hasElevation ? " · altitudes" : ""}
+                          {r.overview ? " · mapa del país" : ""}
                         </p>
                       </div>
                       <button
