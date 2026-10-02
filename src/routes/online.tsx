@@ -147,7 +147,7 @@ function OnlinePage() {
       if (!overview) {
         try {
           overview = await downloadOverview(
-            { bounds: region.bounds, layers: region.layers },
+            { bounds: region.bounds, layers: region.layers ?? ALL_LAYERS },
             setProgress,
             controller.signal,
           );
