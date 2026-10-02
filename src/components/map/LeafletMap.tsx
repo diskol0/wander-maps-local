@@ -76,7 +76,7 @@ const CachedTileLayer = L.TileLayer.extend({
         const res = await fetch(url);
         if (!res.ok) throw new Error(String(res.status));
         const blob = await res.blob();
-        await putTile(layerId, coords.z, coords.x, coords.y, blob);
+        await putTile(layerId, coords.z, coords.x, coords.y, blob, opts.keyPrefix);
         img.src = URL.createObjectURL(blob);
         img.onload = () => {
           URL.revokeObjectURL(img.src);
