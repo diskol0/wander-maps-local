@@ -119,6 +119,8 @@ export default function LeafletMap({
   const fittedRef = useRef(false);
   const boundsRef = useRef<L.LatLngBounds | null>(null);
   const meRef = useRef<L.LayerGroup | null>(null);
+  const ovRef = useRef<L.TileLayer | null>(null);
+  const ovRectRef = useRef<L.LayerGroup | null>(null);
   const ovSyncRef = useRef<(() => void) | null>(null);
   const detailMinRef = useRef(detailMinZoom);
   detailMinRef.current = detailMinZoom;
@@ -271,8 +273,73 @@ export default function LeafletMap({
     }) as L.TileLayer;
     tl.addTo(map);
     tl.bringToBack();
+    // When zoomed out into the overview range, the detail tiles stay hidden.
+    if (detailMinRef.current > 0 && map.getZoom() < detailMinRef.current) tl.setOpacity(0);
     tileRef.current = tl;
+    ovSyncRef.current?.();
   }, [layer, offlineOnly]);
+
+  // Country overview: replaces the detail tiles below detailMinZoom and marks
+  // the downloadable zone with a rectangle.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !overview) return;
+
+    const spec = TILE_LAYERS[layer];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ov = new (CachedTileLayer as any)(spec.url, {
+      minZoom: 2,
+      maxZoom: 19,
+      minNativeZoom: overview.zoom,
+      maxNativeZoom: overview.zoom,
+      attribution: spec.attribution,
+      offlineOnly,
+      layerId: layer,
+      keyPrefix: "ov",
+      zIndex: 100,
+    }) as L.TileLayer;
+    ov.setOpacity(0);
+    ov.addTo(map);
+    ovRef.current = ov;
+
+    const rect = L.rectangle(
+      L.latLngBounds([overview.south, overview.west], [overview.north, overview.east]),
+      {
+        color: "#f08a3c",
+        weight: 2,
+        dashArray: "6 6",
+        fillColor: "#f08a3c",
+        fillOpacity: 0.06,
+      },
+    ).bindTooltip("Tu mapa con detalle está aquí — haz zoom para entrar");
+    const rectGroup = L.layerGroup([rect]).addTo(map);
+    ovRectRef.current = rectGroup;
+
+    const sync = () => {
+      const out = map.getZoom() < detailMinRef.current;
+      ov.setOpacity(out ? 1 : 0);
+      const detail = tileRef.current;
+      if (detail) detail.setOpacity(out ? 0 : 1);
+      if (out) {
+        if (!map.hasLayer(rectGroup)) rectGroup.addTo(map);
+      } else {
+        map.removeLayer(rectGroup);
+      }
+    };
+    sync();
+    ovSyncRef.current = sync;
+    map.on("zoomend", sync);
+
+    return () => {
+      map.off("zoomend", sync);
+      map.removeLayer(ov);
+      map.removeLayer(rectGroup);
+      if (ovRef.current === ov) ovRef.current = null;
+      if (ovRectRef.current === rectGroup) ovRectRef.current = null;
+      if (ovSyncRef.current === sync) ovSyncRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overview, layer, offlineOnly]);
 
   // Track + markers
   useEffect(() => {
