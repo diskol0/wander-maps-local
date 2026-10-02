@@ -106,6 +106,8 @@ export default function LeafletMap({
   track,
   you = null,
   flyTo = null,
+  overview = null,
+  detailMinZoom = 0,
   onViewChange,
   className,
 }: LeafletMapProps) {
@@ -117,6 +119,9 @@ export default function LeafletMap({
   const fittedRef = useRef(false);
   const boundsRef = useRef<L.LatLngBounds | null>(null);
   const meRef = useRef<L.LayerGroup | null>(null);
+  const ovSyncRef = useRef<(() => void) | null>(null);
+  const detailMinRef = useRef(detailMinZoom);
+  detailMinRef.current = detailMinZoom;
 
 
   const cb = useRef({ onViewChange, onAddPoint, onMovePoint, onSelectPoint });
