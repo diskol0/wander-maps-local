@@ -9,3 +9,10 @@
 - [x] Importar GPX abriendo directamente el explorador de archivos del dispositivo
 - [x] Modo seguimiento GPS (traza azul en vivo) con guardado en la biblioteca
 - [x] Generar ZIP del proyecto completo para descarga y prueba local
+
+## Nueva tanda (pendiente)
+- [ ] Desnivel en vivo entre los dos últimos puntos al crear ruta (desde altitudes/curvas de nivel)
+- [ ] Mostrar el total (distancia y desnivel) al guardar la ruta
+- [ ] Elegir el nivel de detalle máximo al descargar una zona en modo online
+- [ ] Descargar mapa del país a zoom 8 y, al alejar el zoom fuera de rango, mostrar la zona ampliable con un cuadrado
+- [ ] Regenerar ZIP con todo
