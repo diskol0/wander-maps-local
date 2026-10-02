@@ -312,6 +312,12 @@ function EditorPage() {
                 ))}
               </select>
             </div>
+            <div className="mt-3 flex items-center justify-between rounded-lg bg-secondary px-3 py-2 text-sm">
+              <span className="text-muted-foreground">Total de la ruta</span>
+              <span className="font-display">
+                {total.distanceKm} km · +{total.ascentM} m · −{total.descentM} m
+              </span>
+            </div>
             <button
               type="button"
               disabled={points.length < 2 || saving}
