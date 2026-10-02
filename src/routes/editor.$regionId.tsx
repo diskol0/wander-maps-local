@@ -95,6 +95,13 @@ function EditorPage() {
     return slice.length > 1 ? segmentStats(densify(slice, eleAt)) : null;
   }, [selection, points, eleAt]);
 
+  // Live desnivel for the last two placed points (before any A/B selection).
+  const lastSeg = useMemo(() => {
+    if (points.length < 2 || selection) return null;
+    return segmentStats(densify(points.slice(-2), eleAt));
+  }, [points, eleAt, selection]);
+  const shown = selection ? segment : lastSeg;
+
   async function handleSave() {
     if (points.length < 2 || saving) return;
     setSaving(true);
@@ -237,9 +244,11 @@ function EditorPage() {
                 ? `Punto A elegido (#${pendingA + 1}). Toca ahora el punto B.`
                 : selection
                   ? `Tramo #${Math.min(...selection) + 1} → #${Math.max(...selection) + 1}`
-                  : "Toca dos puntos del mapa para medir el tramo."}
+                  : lastSeg
+                    ? `Último tramo (#${points.length - 1} → #${points.length}) — se actualiza con cada punto`
+                    : "Toca dos puntos del mapa para medir el tramo."}
             </p>
-            {segment && (
+            {shown && (
               <dl className="mt-3 space-y-2 text-sm">
                 {[
                   ["Distancia", `${segment.distanceKm} km`],
