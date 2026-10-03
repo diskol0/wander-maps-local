@@ -4,7 +4,7 @@ import { ArrowLeft, Loader2, MousePointerClick, Save, Trash2, Undo2 } from "luci
 import { AppShell } from "@/components/AppShell";
 import { MapCanvas } from "@/components/map/MapCanvas";
 import { LayerToggle, useMapLayer } from "@/components/map/LayerToggle";
-import { densify, getGrid, sampleGrid, segmentStats, type ElevationGrid } from "@/lib/elevation";
+import { densify, ensureTerrainFor, getGrid, sampleLive, sampleGrid, segmentStats, type ElevationGrid } from "@/lib/elevation";
 import { saveTrail } from "@/lib/my-trails";
 import { getRegion, type Region } from "@/lib/tile-cache";
 import type { Trail, TrailPoint } from "@/lib/trails";
@@ -54,16 +54,48 @@ function EditorPage() {
     })();
   }, [regionId]);
 
+  const [terrainVer, setTerrainVer] = useState(0);
+  const [measureMode, setMeasureMode] = useState(false);
+  const [measure, setMeasure] = useState<Array<{ lat: number; lon: number }>>([]);
+
   const eleAt = useCallback(
-    (lat: number, lon: number) => (grid ? (sampleGrid(grid, lat, lon) ?? 0) : 0),
-    [grid],
+    (lat: number, lon: number) => {
+      const g = grid ? sampleGrid(grid, lat, lon) : null;
+      if (g !== null && g !== 0) return g;
+      return sampleLive(lat, lon) ?? g ?? 0;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [grid, terrainVer],
   );
+
+  useEffect(() => {
+    const all = [...points, ...measure];
+    if (all.length === 0) return;
+    let alive = true;
+    void ensureTerrainFor(points.length ? points : []).then(async () => {
+      await ensureTerrainFor(measure);
+      if (alive) setTerrainVer((v) => v + 1);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [points, measure]);
+
+  const measureStats = useMemo(() => {
+    if (measure.length < 2) return null;
+    return segmentStats(densify(measure.map((p) => ({ ...p, ele: eleAt(p.lat, p.lon) })), eleAt, 20));
+  }, [measure, eleAt]);
+  const measureEle = measure.map((p) => eleAt(p.lat, p.lon));
 
   const addPoint = useCallback(
     (lat: number, lon: number) => {
+      if (measureMode) {
+        setMeasure((m) => (m.length >= 2 ? [{ lat, lon }] : [...m, { lat, lon }]));
+        return;
+      }
       setPoints((prev) => [...prev, { lat, lon, ele: eleAt(lat, lon) }]);
     },
-    [eleAt],
+    [eleAt, measureMode],
   );
 
   const movePoint = useCallback(
@@ -86,20 +118,24 @@ function EditorPage() {
     });
   }, []);
 
-  const dense = useMemo(() => densify(points, eleAt), [points, eleAt]);
+  const fresh = useMemo(
+    () => points.map((p) => ({ ...p, ele: eleAt(p.lat, p.lon) })),
+    [points, eleAt],
+  );
+  const dense = useMemo(() => densify(fresh, eleAt), [fresh, eleAt]);
   const total = useMemo(() => segmentStats(dense), [dense]);
   const segment = useMemo(() => {
     if (!selection) return null;
     const [a, b] = selection;
-    const slice = points.slice(Math.min(a, b), Math.max(a, b) + 1);
+    const slice = fresh.slice(Math.min(a, b), Math.max(a, b) + 1);
     return slice.length > 1 ? segmentStats(densify(slice, eleAt)) : null;
-  }, [selection, points, eleAt]);
+  }, [selection, fresh, eleAt]);
 
   // Live desnivel for the last two placed points (before any A/B selection).
   const lastSeg = useMemo(() => {
     if (points.length < 2 || selection) return null;
-    return segmentStats(densify(points.slice(-2), eleAt));
-  }, [points, eleAt, selection]);
+    return segmentStats(densify(fresh.slice(-2), eleAt));
+  }, [fresh, eleAt, selection]);
   const shown = selection ? segment : lastSeg;
 
   async function handleSave() {
@@ -184,6 +220,8 @@ function EditorPage() {
             onAddPoint={addPoint}
             onMovePoint={movePoint}
             onSelectPoint={selectPoint}
+            track={measure}
+            you={measure[0] ?? null}
             className="topo-panel h-[460px] overflow-hidden lg:h-[600px]"
           />
           <LayerToggle layer={layer} onChange={setLayer} className="absolute right-3 top-3 z-[500]" />
@@ -238,7 +276,48 @@ function EditorPage() {
           </section>
 
           <section className="topo-panel p-5">
-            <h2 className="text-2xl">Desnivel entre dos puntos</h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-2xl">Medir desnivel libre</h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setMeasureMode((m) => !m);
+                  setMeasure([]);
+                }}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold ${measureMode ? "bg-primary text-primary-foreground" : "bg-secondary"}`}
+              >
+                {measureMode ? "Medición activa" : "Medir en el mapa"}
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {measureMode
+                ? measure.length === 0
+                  ? "Toca el punto A en cualquier sitio del mapa."
+                  : measure.length === 1
+                    ? `A: ${measureEle[0]} m. Toca ahora el punto B.`
+                    : `A: ${measureEle[0]} m → B: ${measureEle[1]} m. Toca otra vez para empezar de nuevo.`
+                : "Actívalo para elegir dos puntos cualesquiera del mapa (no se añaden a la ruta)."}
+            </p>
+            {measureMode && measureStats && (
+              <dl className="mt-3 space-y-2 text-sm">
+                {[
+                  ["Distancia", `${measureStats.distanceKm} km`],
+                  ["Diferencia de cota", `${measureStats.deltaM > 0 ? "+" : ""}${measureStats.deltaM} m`],
+                  ["Desnivel acumulado +", `${measureStats.ascentM} m`],
+                  ["Desnivel acumulado −", `${measureStats.descentM} m`],
+                  ["Pendiente media", `${measureStats.slopePct} %`],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex items-center justify-between rounded-lg bg-secondary px-3 py-2">
+                    <dt className="text-muted-foreground">{k}</dt>
+                    <dd className="font-display text-lg">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </section>
+
+          <section className="topo-panel p-5">
+            <h2 className="text-2xl">Desnivel entre dos puntos de la ruta</h2>
             <p className="mt-1 text-xs text-muted-foreground">
               {pendingA !== null
                 ? `Punto A elegido (#${pendingA + 1}). Toca ahora el punto B.`
