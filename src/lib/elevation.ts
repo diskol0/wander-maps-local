@@ -264,3 +264,62 @@ export function densify(
   }
   return out;
 }
+
+/* ---------- Live terrain sampler (falls back when the saved grid has no value) ---------- */
+
+const terrainStore = createStore("sendero-terrain", "tiles");
+const liveTiles = new Map<string, Int16Array>();
+const pending = new Map<string, Promise<void>>();
+
+function tileKeyFor(lat: number, lon: number) {
+  const fx = lonToTileXf(lon, TERRAIN_ZOOM);
+  const fy = latToTileYf(lat, TERRAIN_ZOOM);
+  return { key: `${Math.floor(fx)}/${Math.floor(fy)}`, fx, fy };
+}
+
+/** Synchronous sample from terrain tiles already in memory; null if not loaded. */
+export function sampleLive(lat: number, lon: number): number | null {
+  const { key, fx, fy } = tileKeyFor(lat, lon);
+  const t = liveTiles.get(key);
+  if (!t) return null;
+  const px = Math.min(TILE_PX - 1, Math.floor((fx % 1) * TILE_PX));
+  const py = Math.min(TILE_PX - 1, Math.floor((fy % 1) * TILE_PX));
+  return t[py * TILE_PX + px] ?? null;
+}
+
+async function ensureTile(key: string) {
+  if (liveTiles.has(key)) return;
+  let p = pending.get(key);
+  if (!p) {
+    p = (async () => {
+      const stored = await get<Int16Array>(key, terrainStore).catch(() => undefined);
+      if (stored) {
+        liveTiles.set(key, stored);
+        return;
+      }
+      const [x, y] = key.split("/").map(Number) as [number, number];
+      const ele = await loadTerrainTile(x, y);
+      liveTiles.set(key, ele);
+      await set(key, ele, terrainStore).catch(() => {});
+    })().finally(() => pending.delete(key));
+    pending.set(key, p);
+  }
+  await p.catch(() => {});
+}
+
+/** Loads (from device or network) the terrain tiles covering these points. */
+export async function ensureTerrainFor(points: Array<{ lat: number; lon: number }>) {
+  const keys = new Set<string>();
+  for (let i = 0; i < points.length; i++) {
+    const a = points[i]!;
+    keys.add(tileKeyFor(a.lat, a.lon).key);
+    const b = points[i + 1];
+    if (b) {
+      for (let k = 1; k < 10; k++) {
+        const t = k / 10;
+        keys.add(tileKeyFor(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t).key);
+      }
+    }
+  }
+  await Promise.all([...keys].map(ensureTile));
+}
