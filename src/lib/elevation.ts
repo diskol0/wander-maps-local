@@ -304,7 +304,7 @@ async function ensureTile(key: string) {
     })().finally(() => pending.delete(key));
     pending.set(key, p);
   }
-  await p.catch(() => {});
+  await p.catch((e) => console.warn("terrain tile failed", key, e));
 }
 
 /** Loads (from device or network) the terrain tiles covering these points. */
