@@ -145,6 +145,20 @@ function OnlinePage() {
       }
       let overview = region.overview ?? null;
       if (!overview) {
+        // Reuse a country map already downloaded for another zone that covers this one.
+        const b = region.bounds;
+        const existing = (await getRegions()).find(
+          (r) =>
+            r.id !== region.id &&
+            r.overview &&
+            r.overview.bounds.south <= b.south &&
+            r.overview.bounds.north >= b.north &&
+            r.overview.bounds.west <= b.west &&
+            r.overview.bounds.east >= b.east,
+        );
+        if (existing?.overview) overview = existing.overview;
+      }
+      if (!overview) {
         try {
           overview = await downloadOverview(
             { bounds: region.bounds, layers: region.layers ?? ALL_LAYERS },

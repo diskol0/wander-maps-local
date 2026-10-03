@@ -305,11 +305,11 @@ export default function LeafletMap({
     const rect = L.rectangle(
       L.latLngBounds([overview.south, overview.west], [overview.north, overview.east]),
       {
-        color: "#f08a3c",
-        weight: 2,
+        color: "#39ff14",
+        weight: 3,
         dashArray: "6 6",
-        fillColor: "#f08a3c",
-        fillOpacity: 0.06,
+        fillColor: "#39ff14",
+        fillOpacity: 0.12,
       },
     ).bindTooltip("Tu mapa con detalle está aquí — haz zoom para entrar");
     const rectGroup = L.layerGroup([rect]).addTo(map);
