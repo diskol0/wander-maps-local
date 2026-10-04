@@ -75,8 +75,8 @@ async function loadTerrainTile(x: number, y: number, signal?: AbortSignal) {
       if (!ctx) throw new Error("canvas");
       ctx.drawImage(bmp, 0, 0);
       const px = ctx.getImageData(0, 0, bmp.width, bmp.height).data;
-      bmp.close();
       const ele = new Int16Array(bmp.width * bmp.height);
+      bmp.close();
       for (let i = 0; i < ele.length; i++) {
         const r = px[i * 4]!;
         const g = px[i * 4 + 1]!;
@@ -293,7 +293,7 @@ async function ensureTile(key: string) {
   if (!p) {
     p = (async () => {
       const stored = await get<Int16Array>(key, terrainStore).catch(() => undefined);
-      if (stored) {
+      if (stored && stored.length === TILE_PX * TILE_PX) {
         liveTiles.set(key, stored);
         return;
       }
@@ -323,4 +323,3 @@ export async function ensureTerrainFor(points: Array<{ lat: number; lon: number 
   }
   await Promise.all([...keys].map(ensureTile));
 }
-export const __dbg = () => [...liveTiles.entries()].map(([k,v])=>k+":"+(v?.constructor?.name)+":"+v?.length+":"+v?.[1000]);
