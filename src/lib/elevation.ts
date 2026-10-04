@@ -323,3 +323,4 @@ export async function ensureTerrainFor(points: Array<{ lat: number; lon: number 
   }
   await Promise.all([...keys].map(ensureTile));
 }
+export const __dbg = () => [...liveTiles.entries()].map(([k,v])=>k+":"+(v?.constructor?.name)+":"+v?.length+":"+v?.[1000]);
