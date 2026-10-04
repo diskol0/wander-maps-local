@@ -214,7 +214,7 @@ function EditorPage() {
             offlineOnly
             layer={layer}
             fitBounds={region.bounds}
-            overview={region.overview ? { ...region.overview.bounds, zoom: region.overview.zoom } : null}
+            overview={region.overview ? { ...region.bounds, zoom: region.overview.zoom } : null}
             detailMinZoom={region.minZoom}
             editable
             points={points}

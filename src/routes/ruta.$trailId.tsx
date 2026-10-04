@@ -171,7 +171,7 @@ function TrailView({ trail, regionId }: { trail: Trail; regionId?: string | unde
           layer={layer}
           selection={selection}
           onSelectPoint={pick}
-          overview={region?.overview ? { ...region.overview.bounds, zoom: region.overview.zoom } : null}
+          overview={region?.overview ? { ...region.bounds, zoom: region.overview.zoom } : null}
           detailMinZoom={region?.minZoom ?? 0}
           track={rec.points}
           you={rec.you}

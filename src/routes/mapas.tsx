@@ -134,7 +134,7 @@ function MapsPage() {
                   fitBounds={selected.bounds}
                   overview={
                     selected.overview
-                      ? { ...selected.overview.bounds, zoom: selected.overview.zoom }
+                      ? { ...selected.bounds, zoom: selected.overview.zoom }
                       : null
                   }
                   detailMinZoom={selected.minZoom}
