@@ -1,3 +1,5 @@
+import { DEFAULT_GPX_TRAILS } from "./default-gpx-trails";
+
 export type TrailPoint = { lat: number; lon: number; ele: number };
 
 export type Trail = {
@@ -33,7 +35,7 @@ function track(
   return pts;
 }
 
-export const TRAILS: Trail[] = [
+const ORIGINAL_TRAILS: Trail[] = [
   {
     id: "pedriza-cancho",
     name: "La Pedriza — Cancho de los Muertos",
@@ -109,6 +111,8 @@ export const TRAILS: Trail[] = [
     points: track([37.1355, -3.4175], [37.0865, -3.3405], 1180, 1980, 75, 0.0022),
   },
 ];
+
+export const TRAILS: Trail[] = [...DEFAULT_GPX_TRAILS, ...ORIGINAL_TRAILS];
 
 export function getTrail(id: string): Trail | undefined {
   return TRAILS.find((t) => t.id === id);
