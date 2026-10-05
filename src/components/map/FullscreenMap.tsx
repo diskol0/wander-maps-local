@@ -15,7 +15,7 @@ export function FullscreenMap({ children, className = "" }: { children: ReactNod
 
   return (
     <div
-      className={`${expanded ? "fixed inset-0 z-[800] bg-background p-0" : `relative ${className}`} [&_.sendero-map]:h-full`}
+      className={expanded ? "fixed inset-0 z-[800] bg-background p-0 [&_.sendero-map]:h-full" : `relative ${className}`}
     >
       {children}
       <button

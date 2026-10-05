@@ -27,6 +27,8 @@ export const Route = createFileRoute("/mapas")({
           "Abre cualquier zona descargada en callejero o satélite y dibuja sobre ella tus propias rutas sin conexión.",
       },
       { property: "og:title", content: "Mis mapas descargados | Sendero" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Selecciona un mapa guardado, míralo offline y crea rutas encima.",

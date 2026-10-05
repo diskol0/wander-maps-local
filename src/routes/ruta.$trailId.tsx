@@ -32,6 +32,8 @@ export const Route = createFileRoute("/ruta/$trailId")({
             content: "Detalle de una ruta guardada en tu dispositivo, con mapa y perfil de elevación.",
           },
           { property: "og:title", content: "Ruta guardada | Sendero" },
+          { property: "og:type", content: "website" },
+          { name: "twitter:card", content: "summary" },
           {
             property: "og:description",
             content: "Mapa, perfil de elevación y descarga GPX de tu ruta.",
@@ -48,6 +50,8 @@ export const Route = createFileRoute("/ruta/$trailId")({
         { title },
         { name: "description", content: description },
         { property: "og:title", content: title },
+        { property: "og:type", content: "article" },
+        { name: "twitter:card", content: "summary" },
         { property: "og:description", content: description },
       ],
     };

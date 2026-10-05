@@ -19,6 +19,8 @@ export const Route = createFileRoute("/")({
           "Biblioteca de rutas de montaña que funciona sin cobertura: descarga GPX, guarda mapas y navega offline.",
       },
       { property: "og:title", content: "Sendero — Rutas de montaña offline con GPX" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Descarga rutas en GPX y mapas por zonas para usarlos sin conexión en la montaña.",

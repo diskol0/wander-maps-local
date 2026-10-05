@@ -20,6 +20,8 @@ export const Route = createFileRoute("/editor/$regionId")({
           "Dibuja tu ruta punto a punto sobre un mapa descargado y calcula distancia y desnivel sin conexión.",
       },
       { property: "og:title", content: "Crear ruta offline | Sendero" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Traza rutas sobre tus mapas guardados y mide el desnivel entre dos puntos.",

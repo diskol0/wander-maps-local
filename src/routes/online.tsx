@@ -35,6 +35,8 @@ export const Route = createFileRoute("/online")({
           "Explora el mapa con conexión, elige una zona y descarga callejero, satélite y altitudes para usarla sin internet.",
       },
       { property: "og:title", content: "Descargar mapas offline | Sendero" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content:
