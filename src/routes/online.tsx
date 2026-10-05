@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CloudDownload, HardDrive, Loader2, Mountain, Search, Trash2, TriangleAlert } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { MapCanvas } from "@/components/map/MapCanvas";
+import { FullscreenMap } from "@/components/map/FullscreenMap";
 import { LayerToggle, useMapLayer } from "@/components/map/LayerToggle";
 import { downloadElevationGrid, removeGrid } from "@/lib/elevation";
 import { downloadOverview } from "@/lib/tile-cache";
@@ -211,20 +212,24 @@ function OnlinePage() {
       </header>
 
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-        <div className="relative">
+        <FullscreenMap>
           <MapCanvas
             onViewChange={onViewChange}
             layer={layer}
             flyTo={flyTo}
             className="topo-panel h-[440px] overflow-hidden lg:h-[560px]"
           />
-          <LayerToggle layer={layer} onChange={setLayer} className="absolute right-3 top-3 z-[500]" />
+          <LayerToggle
+            layer={layer}
+            onChange={setLayer}
+            className="absolute bottom-3 right-3 z-[500] sm:bottom-auto sm:top-3 sm:right-16"
+          />
           <form
             onSubmit={(e) => {
               e.preventDefault();
               void handleSearch();
             }}
-            className="absolute left-3 top-3 z-[500] w-[min(320px,70%)]"
+            className="absolute left-3 top-3 z-[500] w-[calc(100%-4.75rem)] max-w-[320px]"
           >
             <div className="flex items-center gap-1 rounded-full border border-border bg-background/90 p-1 backdrop-blur">
               <Search className="ml-2 size-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -268,7 +273,7 @@ function OnlinePage() {
               </ul>
             )}
           </form>
-        </div>
+        </FullscreenMap>
 
         <div className="flex flex-col gap-4">
           <section className="topo-panel p-5">
