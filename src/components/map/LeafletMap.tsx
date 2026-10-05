@@ -135,10 +135,11 @@ export default function LeafletMap({
     const map = L.map(ref.current, {
       center: center ?? [40.4168, -3.7038],
       zoom,
-      zoomControl: true,
+      zoomControl: false,
       attributionControl: true,
     });
     mapRef.current = map;
+    L.control.zoom({ position: "bottomleft" }).addTo(map);
     overlayRef.current = L.layerGroup().addTo(map);
     trackRef.current = L.layerGroup().addTo(map);
     meRef.current = L.layerGroup().addTo(map);
@@ -182,7 +183,7 @@ export default function LeafletMap({
         return btn;
       },
     });
-    new Locate({ position: "topleft" }).addTo(map);
+    new Locate({ position: "bottomleft" }).addTo(map);
 
 
     if (fitBounds) {

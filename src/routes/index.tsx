@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, Download, Mountain, Route as RouteIcon, Timer, Trash2, TrendingUp } from "lucide-react";
+import { ArrowUpRight, Download, Loader2, Map as MapIcon, Mountain, Route as RouteIcon, Timer, Trash2, TrendingUp } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { TRAILS, type Trail } from "@/lib/trails";
 import { downloadGpx } from "@/lib/gpx";
 import { deleteTrail, getHiddenDemoTrails, getSavedTrails, hideDemoTrail, type SavedTrail } from "@/lib/my-trails";
 import { cachedBytes, countCachedTiles, formatBytes, getRegions } from "@/lib/tile-cache";
+import { DEFAULT_GPX_TRAIL_IDS } from "@/lib/default-gpx-trails";
+import { downloadTrailMap } from "@/lib/offline-route-map";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -17,6 +19,8 @@ export const Route = createFileRoute("/")({
           "Biblioteca de rutas de montaña que funciona sin cobertura: descarga GPX, guarda mapas y navega offline.",
       },
       { property: "og:title", content: "Sendero — Rutas de montaña offline con GPX" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Descarga rutas en GPX y mapas por zonas para usarlos sin conexión en la montaña.",
@@ -29,6 +33,27 @@ export const Route = createFileRoute("/")({
 const ACTIVITIES = ["Todas", "Senderismo", "BTT", "Trail running", "Alpinismo"] as const;
 
 function TrailCard({ trail, onDelete }: { trail: Trail; onDelete?: () => void }) {
+  const isSuppliedGpx = DEFAULT_GPX_TRAIL_IDS.has(trail.id);
+  const [includeMap, setIncludeMap] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadLabel, setDownloadLabel] = useState("");
+
+  async function handleDownload() {
+    downloadGpx(trail);
+    if (!includeMap || downloading) return;
+    setDownloading(true);
+    try {
+      await downloadTrailMap(trail, (progress) =>
+        setDownloadLabel(`${progress.label} ${progress.done}/${progress.total}`),
+      );
+      setDownloadLabel("Mapa offline guardado");
+    } catch {
+      setDownloadLabel("No se pudo completar el mapa");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   return (
     <article className="topo-panel flex flex-col gap-4 p-5 transition-colors hover:border-primary/60">
       <div className="flex items-start justify-between gap-3">
@@ -46,6 +71,23 @@ function TrailCard({ trail, onDelete }: { trail: Trail; onDelete?: () => void })
         </div>
       </div>
       <p className="text-sm text-muted-foreground">{trail.summary}</p>
+      {isSuppliedGpx && (
+        <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border bg-secondary px-3 py-2 text-xs">
+          <input
+            type="checkbox"
+            checked={includeMap}
+            onChange={(event) => setIncludeMap(event.target.checked)}
+            className="mt-0.5 size-4 accent-primary"
+          />
+          <span>
+            <span className="flex items-center gap-1 font-medium text-foreground">
+              <MapIcon className="size-3.5" aria-hidden /> Descargar también el mapa offline
+            </span>
+            <span className="text-muted-foreground">Desde el encuadre de la ruta hasta el máximo detalle.</span>
+          </span>
+        </label>
+      )}
+      {downloadLabel && <p className="text-xs text-muted-foreground">{downloadLabel}</p>}
       <dl className="grid grid-cols-3 gap-2 text-sm">
         <div className="rounded-lg bg-secondary px-3 py-2">
           <dt className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -76,10 +118,11 @@ function TrailCard({ trail, onDelete }: { trail: Trail; onDelete?: () => void })
         </Link>
         <button
           type="button"
-          onClick={() => downloadGpx(trail)}
+          onClick={() => void handleDownload()}
+          disabled={downloading}
           className="flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
         >
-          <Download className="size-4" aria-hidden /> GPX
+          {downloading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Download className="size-4" aria-hidden />} GPX
         </button>
         {onDelete && (
           <button

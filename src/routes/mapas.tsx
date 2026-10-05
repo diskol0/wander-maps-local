@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CloudDownload, Map as MapIcon, PencilLine, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { MapCanvas } from "@/components/map/MapCanvas";
+import { FullscreenMap } from "@/components/map/FullscreenMap";
 import { LayerToggle, useMapLayer } from "@/components/map/LayerToggle";
 import { TrackRecorderPanel, useTrackRecorder } from "@/components/map/TrackRecorder";
 import { removeGrid } from "@/lib/elevation";
@@ -26,6 +27,8 @@ export const Route = createFileRoute("/mapas")({
           "Abre cualquier zona descargada en callejero o satélite y dibuja sobre ella tus propias rutas sin conexión.",
       },
       { property: "og:title", content: "Mis mapas descargados | Sendero" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Selecciona un mapa guardado, míralo offline y crea rutas encima.",
@@ -125,7 +128,7 @@ function MapsPage() {
           </ul>
 
           <div className="flex flex-col gap-3">
-            <div className="relative">
+            <FullscreenMap>
               {selected && (
                 <MapCanvas
                   key={selected.id}
@@ -141,15 +144,15 @@ function MapsPage() {
                   track={rec.points}
                   you={rec.you}
                   flyTo={rec.active && rec.you ? { lat: rec.you.lat, lon: rec.you.lon } : null}
-                  className="topo-panel h-[420px] overflow-hidden lg:h-[520px]"
+                  className="sendero-map topo-panel h-[420px] overflow-hidden lg:h-[520px]"
                 />
               )}
               <LayerToggle
                 layer={layer}
                 onChange={setLayer}
-                className="absolute right-3 top-3 z-[500]"
+                className="absolute right-3 top-16 z-[500]"
               />
-            </div>
+            </FullscreenMap>
             {selected && (
               <Link
                 to="/editor/$regionId"

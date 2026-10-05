@@ -32,16 +32,16 @@ export function LayerToggle({
 }) {
   return (
     <div
-      className={`pointer-events-auto flex items-center gap-1 rounded-full border border-border bg-background/90 p-1 backdrop-blur ${className ?? ""}`}
+      className={`pointer-events-auto flex max-w-[calc(100vw-1.5rem)] items-center gap-0.5 rounded-full border border-border bg-background/90 p-1 shadow-sm backdrop-blur sm:gap-1 ${className ?? ""}`}
     >
-      <Layers className="ml-2 size-3.5 text-muted-foreground" aria-hidden />
+      <Layers className="ml-1.5 size-3.5 shrink-0 text-muted-foreground sm:ml-2" aria-hidden />
       {ALL_LAYERS.map((l) => (
         <button
           key={l}
           type="button"
           onClick={() => onChange(l)}
           aria-pressed={layer === l}
-          className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+          className={`whitespace-nowrap rounded-full px-2 py-1.5 text-[11px] font-medium transition-colors sm:px-3 sm:text-xs ${
             layer === l
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:bg-secondary"

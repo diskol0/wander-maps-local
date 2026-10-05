@@ -15,6 +15,8 @@ export const Route = createFileRoute("/wikiloc")({
           "Busca rutas en Wikiloc, descarga su GPX y añádelo a tu biblioteca offline de Sendero en un toque.",
       },
       { property: "og:title", content: "Importar rutas de Wikiloc | Sendero" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Trae cualquier GPX a Sendero y úsalo sin cobertura.",

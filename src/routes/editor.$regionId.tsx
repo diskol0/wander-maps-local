@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Loader2, MousePointerClick, Save, Trash2, Undo2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { MapCanvas } from "@/components/map/MapCanvas";
+import { FullscreenMap } from "@/components/map/FullscreenMap";
 import { LayerToggle, useMapLayer } from "@/components/map/LayerToggle";
 import { densify, ensureTerrainFor, getGrid, sampleLive, sampleGrid, segmentStats, type ElevationGrid } from "@/lib/elevation";
 import { saveTrail } from "@/lib/my-trails";
@@ -19,6 +20,8 @@ export const Route = createFileRoute("/editor/$regionId")({
           "Dibuja tu ruta punto a punto sobre un mapa descargado y calcula distancia y desnivel sin conexión.",
       },
       { property: "og:title", content: "Crear ruta offline | Sendero" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Traza rutas sobre tus mapas guardados y mide el desnivel entre dos puntos.",
@@ -209,7 +212,7 @@ function EditorPage() {
       )}
 
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-        <div className="relative">
+        <FullscreenMap>
           <MapCanvas
             offlineOnly
             layer={layer}
@@ -224,10 +227,10 @@ function EditorPage() {
             onSelectPoint={selectPoint}
             track={measure}
             you={measure[0] ?? null}
-            className="topo-panel h-[460px] overflow-hidden lg:h-[600px]"
+            className="sendero-map topo-panel h-[460px] overflow-hidden lg:h-[600px]"
           />
-          <LayerToggle layer={layer} onChange={setLayer} className="absolute right-3 top-3 z-[500]" />
-        </div>
+          <LayerToggle layer={layer} onChange={setLayer} className="absolute right-3 top-16 z-[500]" />
+        </FullscreenMap>
 
         <div className="flex flex-col gap-4">
           <section className="topo-panel p-5">

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { MapCanvas } from "@/components/map/MapCanvas";
+import { FullscreenMap } from "@/components/map/FullscreenMap";
 import { LayerToggle, useMapLayer } from "@/components/map/LayerToggle";
 import { TrackRecorderPanel, useTrackRecorder } from "@/components/map/TrackRecorder";
 import { downloadGpx } from "@/lib/gpx";
@@ -31,6 +32,8 @@ export const Route = createFileRoute("/ruta/$trailId")({
             content: "Detalle de una ruta guardada en tu dispositivo, con mapa y perfil de elevación.",
           },
           { property: "og:title", content: "Ruta guardada | Sendero" },
+          { property: "og:type", content: "website" },
+          { name: "twitter:card", content: "summary" },
           {
             property: "og:description",
             content: "Mapa, perfil de elevación y descarga GPX de tu ruta.",
@@ -47,6 +50,8 @@ export const Route = createFileRoute("/ruta/$trailId")({
         { title },
         { name: "description", content: description },
         { property: "og:title", content: title },
+        { property: "og:type", content: "article" },
+        { name: "twitter:card", content: "summary" },
         { property: "og:description", content: description },
       ],
     };
@@ -165,7 +170,7 @@ function TrailView({ trail, regionId }: { trail: Trail; regionId?: string | unde
         </button>
       </header>
 
-      <div className="relative mb-4">
+      <FullscreenMap className="mb-4">
         <MapCanvas
           points={trail.points}
           layer={layer}
@@ -176,10 +181,10 @@ function TrailView({ trail, regionId }: { trail: Trail; regionId?: string | unde
           track={rec.points}
           you={rec.you}
           flyTo={rec.active && rec.you ? { lat: rec.you.lat, lon: rec.you.lon } : null}
-          className="topo-panel h-[420px] overflow-hidden sm:h-[520px]"
+          className="sendero-map topo-panel h-[420px] overflow-hidden sm:h-[520px]"
         />
-        <LayerToggle layer={layer} onChange={setLayer} className="absolute right-3 top-3 z-[500]" />
-      </div>
+        <LayerToggle layer={layer} onChange={setLayer} className="absolute right-3 top-16 z-[500]" />
+      </FullscreenMap>
 
       <TrackRecorderPanel rec={rec} areaName={trail.area} className="mb-4" />
 
