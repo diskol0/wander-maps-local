@@ -17,8 +17,8 @@
 - [x] Descargar mapa del país a zoom 8 y, al alejar el zoom fuera de rango, mostrar la zona ampliable con un cuadrado
 - [x] Regenerar ZIP con todo
 ## Rutas GPX y revisión móvil
-- [ ] Evitar que buscador y selector de capa se solapen en Pixel 8a
-- [ ] Incluir las seis rutas GPX entregadas como rutas predeterminadas
-- [ ] Añadir un checkbox por GPX para descargar también su mapa offline, desde el encuadre hasta zoom 17
-- [ ] Permitir revisar cualquier mapa a pantalla completa
+- [x] Evitar que buscador y selector de capa se solapen en Pixel 8a
+- [x] Incluir las seis rutas GPX entregadas como rutas predeterminadas
+- [x] Añadir un checkbox por GPX para descargar también su mapa offline, desde el encuadre hasta zoom 17
+- [x] Permitir revisar cualquier mapa a pantalla completa
 - [ ] Verificar en móvil, rutas, descarga y compilación

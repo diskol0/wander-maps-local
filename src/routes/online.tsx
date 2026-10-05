@@ -217,7 +217,7 @@ function OnlinePage() {
             onViewChange={onViewChange}
             layer={layer}
             flyTo={flyTo}
-            className="topo-panel h-[440px] overflow-hidden lg:h-[560px]"
+            className="sendero-map topo-panel h-[440px] overflow-hidden lg:h-[560px]"
           />
           <LayerToggle
             layer={layer}
