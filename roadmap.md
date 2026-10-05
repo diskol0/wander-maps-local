@@ -21,4 +21,4 @@
 - [x] Incluir las seis rutas GPX entregadas como rutas predeterminadas
 - [x] Añadir un checkbox por GPX para descargar también su mapa offline, desde el encuadre hasta zoom 17
 - [x] Permitir revisar cualquier mapa a pantalla completa
-- [ ] Verificar en móvil, rutas, descarga y compilación
+- [x] Verificar en móvil, rutas, descarga y compilación
