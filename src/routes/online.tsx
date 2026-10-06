@@ -7,6 +7,7 @@ import { FullscreenMap } from "@/components/map/FullscreenMap";
 import { LayerToggle, useMapLayer } from "@/components/map/LayerToggle";
 import { downloadElevationGrid, removeGrid } from "@/lib/elevation";
 import { downloadOverview } from "@/lib/tile-cache";
+import { findCoveringRegion, regionDeleteMessage } from "@/lib/region-usage";
 import { getTrail, type Trail } from "@/lib/trails";
 import { getSavedTrail } from "@/lib/my-trails";
 import {
@@ -199,6 +200,12 @@ function OnlinePage() {
 
   async function handleDownload() {
     if (!bounds || busy) return;
+    // Skip areas already covered by a downloaded region at this detail level.
+    const covering = await findCoveringRegion(bounds, maxZoom);
+    if (covering) {
+      setSearchError(`Esa zona ya está descargada en «${covering.name}».`);
+      return;
+    }
     await runDownload({
       id: routeTrail ? `route-map-${routeTrail.id}` : `${Date.now()}`,
       name: name.trim() || `Zona ${new Date().toLocaleDateString("es-ES")}`,
@@ -211,6 +218,7 @@ function OnlinePage() {
   }
 
   async function handleRemove(r: Region) {
+    if (!confirm(await regionDeleteMessage(r))) return;
     await removeRegion(r.id);
     await removeGrid(r.id);
     await refresh();
