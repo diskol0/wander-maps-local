@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { TRAILS, trailBounds, type Trail } from "@/lib/trails";
 import type { Region } from "@/lib/tile-cache";
 import { downloadGpx } from "@/lib/gpx";
-import { deleteTrail, getHiddenDemoTrails, getSavedTrails, hideDemoTrail, type SavedTrail } from "@/lib/my-trails";
+import { deleteTrail, getHiddenDemoTrails, getSavedTrails, getTrailNames, hideDemoTrail, type SavedTrail } from "@/lib/my-trails";
 import { cachedBytes, countCachedTiles, formatBytes, getRegions } from "@/lib/tile-cache";
 import { DEFAULT_GPX_TRAIL_IDS } from "@/lib/default-gpx-trails";
 import { downloadTrailMap } from "@/lib/offline-route-map";
