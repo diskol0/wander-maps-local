@@ -112,7 +112,6 @@ function MapsPage() {
                   onClick={() => {
                     void (async () => {
                       if (!confirm(await regionDeleteMessage(r))) return;
-                    void (async () => {
                       await removeRegion(r.id);
                       await removeGrid(r.id);
                       const all = await getRegions();
