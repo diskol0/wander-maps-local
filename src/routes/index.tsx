@@ -150,11 +150,13 @@ function Index() {
   const [saved, setSaved] = useState<SavedTrail[]>([]);
   const [hidden, setHidden] = useState<string[]>([]);
   const [regionList, setRegionList] = useState<Region[]>([]);
+  const [names, setNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     void (async () => {
       setSaved(await getSavedTrails());
       setHidden(await getHiddenDemoTrails());
+      setNames(await getTrailNames());
       const rs = await getRegions();
       setRegionList(rs);
       setStats({
@@ -169,6 +171,7 @@ function Index() {
   const trails = useMemo(
     () =>
       [...saved, ...demo]
+        .map((t) => (names[t.id] ? { ...t, name: names[t.id]! } : t))
         .filter((t) => activity === "Todas" || t.activity === activity)
         .filter(
         (t) =>

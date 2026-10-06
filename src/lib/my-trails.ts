@@ -36,3 +36,16 @@ export async function hideDemoTrail(id: string) {
   const all = await getHiddenDemoTrails();
   if (!all.includes(id)) await set("hidden-demo", [...all, id], store);
 }
+
+/** Custom names the user gave to any route (built-in or saved). */
+export async function getTrailNames(): Promise<Record<string, string>> {
+  return (await get<Record<string, string>>("names", store)) ?? {};
+}
+
+export async function renameTrail(id: string, name: string) {
+  const names = await getTrailNames();
+  names[id] = name;
+  await set("names", names, store);
+  const saved = await getSavedTrail(id);
+  if (saved) await saveTrail({ ...saved, name });
+}
