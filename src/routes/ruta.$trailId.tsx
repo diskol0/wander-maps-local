@@ -16,7 +16,7 @@ import { LayerToggle, useMapLayer } from "@/components/map/LayerToggle";
 import { TrackRecorderPanel, useTrackRecorder } from "@/components/map/TrackRecorder";
 import { downloadGpx } from "@/lib/gpx";
 import { getTrail, type Trail } from "@/lib/trails";
-import { getSavedTrail, type SavedTrail } from "@/lib/my-trails";
+import { getSavedTrail, getTrailNames, type SavedTrail } from "@/lib/my-trails";
 import { getRegion, type Region } from "@/lib/tile-cache";
 import { segmentStats } from "@/lib/elevation";
 
@@ -66,9 +66,10 @@ function TrailDetail() {
   const [loading, setLoading] = useState(!staticTrail);
 
   useEffect(() => {
-    if (staticTrail) return;
     void (async () => {
-      setTrail(await getSavedTrail(trailId));
+      const base = staticTrail ?? (await getSavedTrail(trailId));
+      const custom = (await getTrailNames())[trailId];
+      setTrail(base && custom ? { ...base, name: custom } : base);
       setLoading(false);
     })();
   }, [staticTrail, trailId]);
