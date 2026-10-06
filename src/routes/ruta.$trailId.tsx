@@ -290,6 +290,7 @@ function TrailView({ trail, regionId }: { trail: Trail; regionId?: string | unde
           </div>
           <Link
             to="/online"
+            search={{ ruta: trail.id }}
             className="mt-2 block rounded-full border border-border px-4 py-2 text-center text-sm text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
           >
             Descargar el mapa de esta zona
