@@ -1,4 +1,5 @@
 import { downloadElevationGrid } from "./elevation";
+import { findCoveringRegion } from "./region-usage";
 import { trailBounds, type Trail } from "./trails";
 import {
   ALL_LAYERS,
@@ -32,6 +33,9 @@ export async function downloadTrailMap(
 ) {
   const bounds = paddedBounds(trail);
   const regionId = `route-map-${trail.id}`;
+  // Never download the same area twice: reuse a region that already covers it.
+  const covering = await findCoveringRegion(bounds, MAX_DETAIL_ZOOM);
+  if (covering) return covering.id;
   const saved = await downloadRegion(
     {
       id: regionId,
