@@ -29,7 +29,7 @@ import {
 
 export const Route = createFileRoute("/online")({
   validateSearch: (s: Record<string, unknown>): { ruta?: string } =>
-    typeof s.ruta === "string" ? { ruta: s.ruta } : {},
+    typeof s["ruta"] === "string" ? { ruta: s["ruta"] } : {},
   head: () => ({
     meta: [
       { title: "Modo online — Descargar mapas y satélite para offline | Sendero" },
