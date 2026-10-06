@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, Download, Loader2, Map as MapIcon, Mountain, Route as RouteIcon, Timer, Trash2, TrendingUp } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import { TRAILS, type Trail } from "@/lib/trails";
+import { TRAILS, trailBounds, type Trail } from "@/lib/trails";
+import type { Region } from "@/lib/tile-cache";
 import { downloadGpx } from "@/lib/gpx";
 import { deleteTrail, getHiddenDemoTrails, getSavedTrails, hideDemoTrail, type SavedTrail } from "@/lib/my-trails";
 import { cachedBytes, countCachedTiles, formatBytes, getRegions } from "@/lib/tile-cache";
@@ -32,7 +33,7 @@ export const Route = createFileRoute("/")({
 
 const ACTIVITIES = ["Todas", "Senderismo", "BTT", "Trail running", "Alpinismo"] as const;
 
-function TrailCard({ trail, onDelete }: { trail: Trail; onDelete?: () => void }) {
+function TrailCard({ trail, onDelete, offline }: { trail: Trail; onDelete?: () => void; offline?: boolean }) {
   const isSuppliedGpx = DEFAULT_GPX_TRAIL_IDS.has(trail.id);
   const [includeMap, setIncludeMap] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -64,6 +65,9 @@ function TrailCard({ trail, onDelete }: { trail: Trail; onDelete?: () => void })
         <div className="flex shrink-0 items-center gap-2">
           {onDelete && (
             <span className="rounded-full bg-accent/20 px-2.5 py-1 text-xs text-accent">Mía</span>
+          )}
+          {(offline || downloadLabel === "Mapa offline guardado") && (
+            <span className="rounded-full bg-primary/20 px-2.5 py-1 text-xs text-primary">Offline</span>
           )}
           <span className="rounded-full border border-border bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
             {trail.difficulty}
@@ -145,13 +149,16 @@ function Index() {
   const [stats, setStats] = useState({ regions: 0, tiles: 0, bytes: 0 });
   const [saved, setSaved] = useState<SavedTrail[]>([]);
   const [hidden, setHidden] = useState<string[]>([]);
+  const [regionList, setRegionList] = useState<Region[]>([]);
 
   useEffect(() => {
     void (async () => {
       setSaved(await getSavedTrails());
       setHidden(await getHiddenDemoTrails());
+      const rs = await getRegions();
+      setRegionList(rs);
       setStats({
-        regions: (await getRegions()).length,
+        regions: rs.length,
         tiles: await countCachedTiles(),
         bytes: await cachedBytes(),
       });
@@ -228,6 +235,7 @@ function Index() {
           <TrailCard
             key={t.id}
             trail={t}
+            offline={hasOfflineMap(t, regionList)}
             onDelete={() => {
               if (!confirm(`¿Borrar la ruta "${t.name}"?`)) return;
               if (saved.some((s) => s.id === t.id)) {
@@ -246,5 +254,16 @@ function Index() {
         </p>
       )}
     </AppShell>
+  );
+}
+
+function hasOfflineMap(t: Trail, regions: Region[]) {
+  if (t.points.length === 0) return false;
+  const b = trailBounds(t);
+  return regions.some(
+    (r) =>
+      r.id === `route-map-${t.id}` ||
+      ((t as SavedTrail).regionId === r.id) ||
+      (r.bounds.south <= b.south && r.bounds.north >= b.north && r.bounds.west <= b.west && r.bounds.east >= b.east),
   );
 }

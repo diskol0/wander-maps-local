@@ -7,6 +7,8 @@ import { FullscreenMap } from "@/components/map/FullscreenMap";
 import { LayerToggle, useMapLayer } from "@/components/map/LayerToggle";
 import { downloadElevationGrid, removeGrid } from "@/lib/elevation";
 import { downloadOverview } from "@/lib/tile-cache";
+import { getTrail, type Trail } from "@/lib/trails";
+import { getSavedTrail } from "@/lib/my-trails";
 import {
   ALL_LAYERS,
   cachedBytes,
@@ -26,6 +28,8 @@ import {
 } from "@/lib/tile-cache";
 
 export const Route = createFileRoute("/online")({
+  validateSearch: (s: Record<string, unknown>): { ruta?: string } =>
+    typeof s["ruta"] === "string" ? { ruta: s["ruta"] } : {},
   head: () => ({
     meta: [
       { title: "Modo online — Descargar mapas y satélite para offline | Sendero" },
@@ -67,6 +71,17 @@ function OnlinePage() {
   const [flyTo, setFlyTo] = useState<{ lat: number; lon: number; zoom?: number } | null>(null);
   const [maxZoomSel, setMaxZoomSel] = useState(MAX_DETAIL_ZOOM);
   const abortRef = useRef<AbortController | null>(null);
+  const { ruta } = Route.useSearch();
+  const [routeTrail, setRouteTrail] = useState<Trail | null>(null);
+
+  useEffect(() => {
+    if (!ruta) return setRouteTrail(null);
+    void (async () => {
+      const t = getTrail(ruta) ?? (await getSavedTrail(ruta));
+      setRouteTrail(t);
+      if (t) setName(t.name);
+    })();
+  }, [ruta]);
 
   const refresh = useCallback(async () => {
     setRegions(await getRegions());
@@ -185,7 +200,7 @@ function OnlinePage() {
   async function handleDownload() {
     if (!bounds || busy) return;
     await runDownload({
-      id: `${Date.now()}`,
+      id: routeTrail ? `route-map-${routeTrail.id}` : `${Date.now()}`,
       name: name.trim() || `Zona ${new Date().toLocaleDateString("es-ES")}`,
       bounds,
       minZoom,
@@ -207,6 +222,7 @@ function OnlinePage() {
         <p className="eyebrow">Modo online</p>
         <h1 className="mt-1 text-4xl uppercase">Descarga mapas para el monte</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+          {routeTrail ? `Mapa encuadrado en «${routeTrail.name}». Elige el detalle y descárgalo. ` : ""}
           Encuadra la zona que vas a recorrer y guárdala. Se descargan las dos vistas —callejero y
           satélite— más las altitudes del terreno, para poder crear rutas y calcular desniveles sin
           cobertura.
@@ -217,6 +233,7 @@ function OnlinePage() {
         <FullscreenMap>
           <MapCanvas
             onViewChange={onViewChange}
+            {...(routeTrail ? { points: routeTrail.points } : {})}
             layer={layer}
             flyTo={flyTo}
             className="sendero-map topo-panel h-[440px] overflow-hidden lg:h-[560px]"
