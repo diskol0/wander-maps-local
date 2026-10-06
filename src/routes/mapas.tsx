@@ -7,6 +7,7 @@ import { FullscreenMap } from "@/components/map/FullscreenMap";
 import { LayerToggle, useMapLayer } from "@/components/map/LayerToggle";
 import { TrackRecorderPanel, useTrackRecorder } from "@/components/map/TrackRecorder";
 import { removeGrid } from "@/lib/elevation";
+import { regionDeleteMessage } from "@/lib/region-usage";
 import {
   formatBytes,
   getRegions,
@@ -109,7 +110,8 @@ function MapsPage() {
                   type="button"
                   aria-label={`Borrar el mapa ${r.name}`}
                   onClick={() => {
-                    if (!confirm(`¿Borrar el mapa "${r.name}"?`)) return;
+                    void (async () => {
+                      if (!confirm(await regionDeleteMessage(r))) return;
                     void (async () => {
                       await removeRegion(r.id);
                       await removeGrid(r.id);

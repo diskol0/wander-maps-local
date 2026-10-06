@@ -71,6 +71,7 @@ function OnlinePage() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [flyTo, setFlyTo] = useState<{ lat: number; lon: number; zoom?: number } | null>(null);
   const [maxZoomSel, setMaxZoomSel] = useState(MAX_DETAIL_ZOOM);
+  const [notice, setNotice] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const { ruta } = Route.useSearch();
   const [routeTrail, setRouteTrail] = useState<Trail | null>(null);
@@ -203,9 +204,10 @@ function OnlinePage() {
     // Skip areas already covered by a downloaded region at this detail level.
     const covering = await findCoveringRegion(bounds, maxZoom);
     if (covering) {
-      setSearchError(`Esa zona ya está descargada en «${covering.name}».`);
+      setNotice(`Esa zona ya está descargada en «${covering.name}»; no hace falta bajarla otra vez.`);
       return;
     }
+    setNotice(null);
     await runDownload({
       id: routeTrail ? `route-map-${routeTrail.id}` : `${Date.now()}`,
       name: name.trim() || `Zona ${new Date().toLocaleDateString("es-ES")}`,
@@ -354,6 +356,11 @@ function OnlinePage() {
               )}
               {busy ? "Descargando…" : "Descargar esta zona"}
             </button>
+            {notice && (
+              <p className="mt-2 rounded-lg bg-secondary px-3 py-2 text-xs text-muted-foreground">
+                {notice}
+              </p>
+            )}
             {progress && (
               <div className="mt-3">
                 <div className="h-2 overflow-hidden rounded-full bg-secondary">
